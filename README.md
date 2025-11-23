@@ -56,7 +56,7 @@ Now, let's walk through a `remainder` path:
 ## Even-Three
 
 This visualisation shows the algorithm rotating 2 blocks where A (the Left Block) is exactly 2 x B (the Right Block).
-ie. `sizeof(A) == (2 * sizeof(B))`.
+ie. `sizeof(A) == (2 * sizeof(B))`
 
 In a single loop operation the algorithm is able to re-organise the sections into their correct locations
 
@@ -65,7 +65,7 @@ In a single loop operation the algorithm is able to re-organise the sections int
 ## OverLapping
 
 This visualisation shows the algorithm rotating 2 blocks where A (the Left Block) is overlapping with B (the Right Block).
-This occurs when `sizeof(B) < sizeof(A) < (2 * sizeof(B)`.
+This occurs when `sizeof(B) < sizeof(A) < (2 * sizeof(B)`
 
 The algorithm cannot place both ends of the array into the correct location in one loop operation, so instead it places B
 in the correct location, and a `sizeof(A) - sizeof(B)` portion of A into the correct location immediately after the end of
@@ -80,7 +80,7 @@ starting sizes, the algorithm may take a number of paths on the next cycle to pl
 ## No Overlap
 
 This visualisation shows the algorithm rotating 2 blocks where A (the Left Block) is NOT overlapping with B (the Right Block).
-This occurs when `sizeof(A) >= (2 * sizeof(B)`.
+This occurs when `sizeof(A) > (2 * sizeof(B)`
 
 The algorithm this time is able to collapse the operational space from both ends of the main array, by placing all of B,
 and a B-sized portion of A into their correct positions with a single loop operation.  This results in rapidly collapsing

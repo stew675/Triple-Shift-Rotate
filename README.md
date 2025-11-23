@@ -51,6 +51,20 @@ items in the larger block.
 Now, let's walk through a `remainder` path:
 
 
+# Visualisations
+
+## Even-Three
+
+[![Even Three Rotation](https://img.youtube.com/vi/VLeCVCcSNPU/0.jpg)](https://youtu.be/VLeCVCcSNPU?si=IKMUrxyoeJwP5l0m)
+
+## OverLapping
+
+[![Overlapping Rotation](https://img.youtube.com/vi/svkgX6XqhFc/0.jpg)](https://youtu.be/svkgX6XqhFc?si=_wNxaKBUncX4OiLV)
+
+## No Overlap
+
+[![No Overlap Rotation](https://img.youtube.com/vi/9LZZ1DgFdK0/0.jpg)](https://youtu.be/9LZZ1DgFdK0?si=raTo8O9zOXQXEgdB)
+
 # RESULTS
 
 Below are the results for all of the algorithms included.  Item size used is 32-bit integers,

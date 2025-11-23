@@ -243,13 +243,14 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 // inline block swap code that was in the original source code
 // My original source code for this algorithm can be found here:
 // https://github.com/stew675/ForSort/blob/f8c7bfb2aa5ea9e7ec1e21c79a3139c5c8573b9e/include/forsort-basic.h#L44-L66
-// It's remarkably short and sweet!
+// It's remarkably short and sweet, and while it doesn't excel on
+// small set sizes, it does get progressively better on larger
+// set sizes.
 
 static void
 old_forsort_rotate(int32_t *pa, size_t na, size_t nb)
 {
 	int32_t	*pb = pa + na, *pe = pb + nb;
-	int32_t	*src, *dst;
 
 	while (na && nb) {
 		if (na < nb) {

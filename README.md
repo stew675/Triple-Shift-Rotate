@@ -85,9 +85,9 @@ Performing this operation gives us the following array:
    └───┴───┴───┴───┴───╨───┴───┴───┴───┴───┴───┴───┴───┘
 ```
 
-As we can see, the above sequence now leaves us with all of the `B` block with all of its items positioned correctly.  The
+As we can see, the above sequence now leaves us with the `B` block having all of its items positioned correctly.  The
 original `A` block contains an `A` sized portion from what was at the start the `B` block, but switched about. `B` is
-effectively removed from further consideration, and the algorithm loops, now focusing on just the `A` block, which now
+now removed from further consideration, and the algorithm loops, focusing on just the remaining `A` block, which now
 looks like this, with the new `A` and `B` block tags assigned.
 
 ```
@@ -146,7 +146,7 @@ Let's consider the following array.  `A` is 3 items long, and `B` is 8 items lon
 
 The `Remainder` path is significantly simpler than the above `Overlap` path, and it consists of just a single 3-way swap.
 
-The algorithm ensures that an `A` sized portion of the total set is in place at both ends of the array with just a single swap call.
+The algorithm ensures that an `A` sized portion of the total set is in place at both ends of the array with just a single swap call.  Note that a single swap call can move multiple elements in sequence/
 
 `F`, `G`, and `H`, move to where `A`, `B`, and `C` are.  `A`, `B`, and `C` move to where `I`, `J`, and `K` are.  `I`, `J`, and `K` move to where `F`, `G`, and `H` are.
 
@@ -194,9 +194,8 @@ The algorithm cannot place both ends of the array into the correct location in o
 in the correct location, and a `sizeof(A) - sizeof(B)` portion of A into the correct location immediately after the end of
 B, all within the same loop operation.
 
-This means that per loop, the algorithm collapses the operation space by the size of the larger of the two blocks.
-The next loop is then left to process a B-sized portion that is still swapped around.  Depending on the exact relative
-starting sizes, the algorithm may take a number of paths on the next cycle to place the pieces into their correct position.
+This means that per loop, the algorithm is collapsing the operational space by the size of the larger of the two blocks.
+The next loop is then left to process a B-sized portion that is still swapped around.
 
 [![Overlapping Rotation](https://img.youtube.com/vi/svkgX6XqhFc/0.jpg)](https://youtu.be/svkgX6XqhFc?si=_wNxaKBUncX4OiLV)
 
@@ -422,6 +421,11 @@ Bridge Rotate (N/3 Aux)     1000000         57945.938ns
 ```
 
 
+# Acknowledgements
+
+I'd like to extend a particular thank you to [Scandum](https://github.com/scandum) for providing the inspiration and challenge
+of exploring Block Swap algorithms more deeply than I had.  Without his excellent research and work, I would have
+almost undoubtedly not given my old Forsort Block Swap algorithm any deeper thought than I had.
 
 
 ### Useful Characters

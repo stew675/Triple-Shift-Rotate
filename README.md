@@ -38,15 +38,17 @@ second array.  This occurs when the following is true:  `sizeof(A) < sizeof(B) <
 Note that A and B are interchangeable here depending upon which is the larger of the two sections, but for ease of
 explanation, we'll focus purely on the scenario where A is smaller than B.
 
+## Overlap Path
 
 Let's walk through an `overlapping` path:
 
 Consider the following array with 2 blocks out of order.  A has 5 items on the left, and B has 8 items on the right.
 
 ```
-┌───┬───┬───┬───┬───╥───┬───┬───┬───┬───┬───┬───┬───┐
-│ I │ J │ K │ L │ M ║ A │ B │ C │ D │ E │ F │ G │ H │
-└───┴───┴───┴───┴───╨───┴───┴───┴───┴───┴───┴───┴───┘
+             A                       B
+   ┌───┬───┬───┬───┬───╥───┬───┬───┬───┬───┬───┬───┬───┐
+   │ I │ J │ K │ L │ M ║ A │ B │ C │ D │ E │ F │ G │ H │
+   └───┴───┴───┴───┴───╨───┴───┴───┴───┴───┴───┴───┴───┘
 ```
 First we caclulate the size of the overlap by subtracting the number of items in the smaller block, from the number of
 items in the larger block.  8 minus 5 is 3, and that is our overlapping amount.
@@ -54,15 +56,111 @@ items in the larger block.  8 minus 5 is 3, and that is our overlapping amount.
 For the overlapping path, the algorithm does a 3-way swap between the last 3 elements of A, the first 3 elements of B,
 and the last 3 elements of B.  It is essentially doing a left-rotation by 1 for each corresponding element.
 
-Performing this operation, gives us the following array:
+Performing this operation gives us the following array:
 
 ```
-┌───┬───┬───┬───┬───╥───┬───┬───┬───┬───┬───┬───┬───┐
-│ I │ J │ A │ B │ C ║ F │ G │ H │ D │ E │ K │ L │ M │
-└───┴───┴───┴───┴───╨───┴───┴───┴───┴───┴───┴───┴───┘
+             A                       B
+   ┌───┬───┬───┬───┬───╥───┬───┬───┬───┬───┬───┬───┬───┐
+   │ I │ J │ A │ B │ C ║ F │ G │ H │ D │ E │ K │ L │ M │
+   └───┴───┴───┴───┴───╨───┴───┴───┴───┴───┴───┴───┴───┘
+```
+`A`, `B`, and `C` moved to where `K`, `L, and `M` were.   `K`, `L`, and `M` moved to where `F`, `G`, and `H` were.
+Finally `F`, `G`, and `H` were moved to where `A`, `B`, and `C` were.
+
+Now the 2nd part of the same operation occurs, swapping the first part of A, with its corresponding location in B.
+This is a basic swap operation, but still takes place within the same loop sequence as the 3-way above
+
+Performing this operation gives us the following array:
+
+```
+             A                       B
+   ┌───┬───┬───┬───┬───╥───┬───┬───┬───┬───┬───┬───┬───┐
+   │ D │ E │ A │ B │ C ║ F │ G │ H │ I │ J │ K │ L │ M │
+   └───┴───┴───┴───┴───╨───┴───┴───┴───┴───┴───┴───┴───┘
 ```
 
-Now, let's walk through a `remainder` path:
+The items `I` and `J`, were swapped with `D` and `E`.
+
+As we can see, the above sequence now leaves all of what was `B` with all of its items positioned correctly.  The
+original `A` block contains an `A` sized portion from what was at the start `B`, but switched about. `B` is
+effectively removed from further consideration, and the algorithm loops, now focusing on just the `A` block, which
+looks like this:
+
+```
+        A         B
+    ┌───┬───╥───┬───┬───┐
+    │ D │ E ║ A │ B │ C │
+    └───┴───╨───┴───┴───┘
+```
+
+The pointers and block sizes get updated, and the loop restarts.  We can see that the next loop would follow the
+overlapping path again, with an overlap size of 1.
+
+The next step with the 3-way swap as described above would leave us with an array like so:
+
+```
+        A         B
+    ┌───┬───╥───┬───┬───┐
+    │ D │ A ║ C │ B │ E │
+    └───┴───╨───┴───┴───┘
+```
+
+Followed by swapping the `D` with the `B` to give the following array:
+
+```
+        A         B
+    ┌───┬───╥───┬───┬───┐
+    │ B │ A ║ C │ D │ E │
+    └───┴───╨───┴───┴───┘
+```
+
+We can see, that just like before, `B` is now fully positioned, leaving just `A` to be rotated.
+
+The next step is trivial and left as an exercise for the reader to look at the code and verify how it completes.
+
+
+
+## No-Overlap/Remainder Path
+
+
+Now, let's walk through a `remainder` path.  This is where `B` is greater than `2 * A`.
+
+Let's consider the following array.  `A` is 3 items long, and `B` is 8 items long
+
+```
+         A                     B
+   ┌───┬───┬───╥───┬───┬───┬───┬───┬───┬───┬───┐
+   │ I │ J │ K ║ A │ B │ C │ D │ E │ F │ G │ H │
+   └───┴───┴───╨───┴───┴───┴───┴───┴───┴───┴───┘
+```
+
+The `Remainder` path is significantly simpler than the above `Overlap` path, and it consists of just a single 3-way swap.
+
+The algorithm ensures that an `A` sized portion of the total set is in place at both ends of the array with just a single swap call.
+
+`F`, `G`, and `H`, move to where `A`, `B`, and `C` are.  `A`, `B`, and `C` move to where `I`, `J`, and `K` are.  `I`, `J`, and `K` move to where `F`, `G`, and `H` are.
+
+This results in the following array:
+
+```
+         A                     B
+   ┌───┬───┬───╥───┬───┬───┬───┬───┬───┬───┬───┐
+   │ A │ B │ C ║ F │ G │ H │ D │ E │ I │ J │ K │
+   └───┴───┴───╨───┴───┴───┴───┴───┴───┴───┴───┘
+```
+
+As we can see, all of `A`, and the last part of `B` are now correctly positioned.  These elements are removed from consideration, and the next loop is presnted with an array that looks like the following:
+
+
+```
+          A         B
+    ┌───┬───┬───╥───┬───┐
+    │ F │ G │ H ║ D │ E │
+    └───┴───┴───╨───┴───┘
+```
+
+We can see that the next loop would process what remains as an Overlapping path where `A` is the larger block.  This proceeds
+much like as described above, except all the directions are reversed.
 
 
 # Visualisations
@@ -312,3 +410,11 @@ Triple Shift Rotate         1000000         63237.759ns **
 Aux Rotation (N/2 Aux)      1000000         65060.416ns
 Bridge Rotate (N/3 Aux)     1000000         57945.938ns
 ```
+
+
+
+
+### Useful Characters
+
+          ┌───┬───┬───┬───┬───┐
+          ˅   ˅   ˅   │   │   │

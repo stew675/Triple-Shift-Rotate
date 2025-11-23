@@ -58,8 +58,18 @@
 #include <stddef.h>
 #include <string.h>
 
-
-#define SMALL_ROTATE_SIZE      16
+// I've discovered that the performance "roughness" at certain sizes is highly 
+// influenced by this value.  I need to do more research on what exactly is
+// going on to cause the slowness.  A higher SMALL_ROTATE_SIZE means that the
+// bulk memmove() operations kick in earlier, so it's clear that the algorithm
+// bogs down on the small fiddly stuff while excelling at quickly collapsing
+// the operational space.  There must exist a different solution to address
+// bogging down and I need to find it.  For now though, I'm raising this value
+// from 16 to 64, as that almost completely solves the issue in the problematic
+// 2000-8000 item ranges.
+// TODO - Find a solution that doesn't require as much stack space (even if it
+// is just 256 bytes).
+#define SMALL_ROTATE_SIZE      64
 
 static void two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe, int32_t * restrict pb);
 

@@ -23,7 +23,7 @@
         SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-//                             rotate_block()
+//                           triple_shift_rotate()
 //
 // Author: Stew Forster (stew675@gmail.com)            Copyright (C) 2025
 //
@@ -58,13 +58,6 @@
 #include <stddef.h>
 #include <string.h>
 
-#define	SWAP(_xa_, _xb_)				\
-	{						\
-		int32_t xa = *(int32_t *)(_xa_);	\
-		int32_t xb = *(int32_t *)(_xb_);	\
-		*(int32_t *)(_xa_) = xb;		\
-		*(int32_t *)(_xb_) = xa;		\
-	}
 
 #define SMALL_ROTATE_SIZE      16
 
@@ -234,7 +227,13 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 //                        Old Forsort
 //-----------------------------------------------------------------
 
-// The following is my old block swap used in earlier Forsort
+// The following is the old block swap algorithm used in earlier
+// versions of Forsort, adapted for use with the benchmark utility
+// two_way_swap_block() has been substituted in-place for the
+// inline block swap code that was in the original source code
+// My original source code for this algorithm can be found here:
+// https://github.com/stew675/ForSort/blob/f8c7bfb2aa5ea9e7ec1e21c79a3139c5c8573b9e/include/forsort-basic.h#L44-L66
+// It's remarkably short and sweet!
 
 static void
 old_forsort_rotate(int32_t *pa, size_t na, size_t nb)
@@ -244,32 +243,16 @@ old_forsort_rotate(int32_t *pa, size_t na, size_t nb)
 
 	while (na && nb) {
 		if (na < nb) {
-			src = pa;
-			dst = pa + nb;
-
-			while (dst < pe) {
-				int32_t t = *src;
-				*src++ = *dst;
-				*dst++ = t;
-			}
-
+			two_way_swap_block(pa + nb, pe, pa);
 			pe -= na;
 			nb -= na;
 		} else {
-			src = pb;
-			dst = pa;
-
-			while (src < pe) {
-				int32_t t = *src;
-				*src++ = *dst;
-				*dst++ = t;
-			}
-
+			two_way_swap_block(pb, pe, pa);
 			pa += nb;
 			na -= nb;
 		}
 	}
-} // swab
+} // old_forsort_rotate
 
 //-----------------------------------------------------------------
 //                     #define cleanup

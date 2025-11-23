@@ -55,13 +55,36 @@ Now, let's walk through a `remainder` path:
 
 ## Even-Three
 
+This visualisation shows the algorithm rotating 2 blocks where A (the Left Block) is exactly 2 x B (the Right Block).
+ie. `sizeof(A) == (2 * sizeof(B))`.
+
+In a single loop operation the algorithm is able to re-organise the sections into their correct locations
+
 [![Even Three Rotation](https://img.youtube.com/vi/VLeCVCcSNPU/0.jpg)](https://youtu.be/VLeCVCcSNPU?si=IKMUrxyoeJwP5l0m)
 
 ## OverLapping
 
+This visualisation shows the algorithm rotating 2 blocks where A (the Left Block) is overlapping with B (the Right Block).
+This occurs when `sizeof(B) < sizeof(A) < (2 * sizeof(B)`.
+
+The algorithm cannot place both ends of the array into the correct location in one loop operation, so instead it places B
+in the correct location, and a `sizeof(A) - sizeof(B)` portion of A into the correct location immediately after the end of
+B, all within the same loop operation.
+
+This means that per loop, the algorithm collapses the operation space by the size of the larger of the two blocks.
+The next loop is then left to process a B-sized portion that is still swapped around.  Depending on the exact relative
+starting sizes, the algorithm may take a number of paths on the next cycle to place the pieces into their correct position.
+
 [![Overlapping Rotation](https://img.youtube.com/vi/svkgX6XqhFc/0.jpg)](https://youtu.be/svkgX6XqhFc?si=_wNxaKBUncX4OiLV)
 
 ## No Overlap
+
+This visualisation shows the algorithm rotating 2 blocks where A (the Left Block) is NOT overlapping with B (the Right Block).
+This occurs when `sizeof(A) >= (2 * sizeof(B)`.
+
+The algorithm this time is able to collapse the operational space from both ends of the main array, by placing all of B,
+and a B-sized portion of A into their correct positions with a single loop operation.  This results in rapidly collapsing
+the size of the operational space with each loop.
 
 [![No Overlap Rotation](https://img.youtube.com/vi/9LZZ1DgFdK0/0.jpg)](https://youtu.be/9LZZ1DgFdK0?si=raTo8O9zOXQXEgdB)
 

@@ -32,21 +32,35 @@ rotation algorithm variants are based upon, but Triple-Shift adds in the notion 
 merely a left-rotate by 1 item across a set of 3 items.  There are two modes of operation, depending on if the lists have
 any overlap, or not.
 
-The first mode is what I call overflow mode, where the smaller array, after rotating, partially overlaps a portion of the
-second array.  This occurs when two arrays are of a similar size.
+The first mode is the overlapping mode, where the smaller array, after rotating, partially overlaps a portion of the
+second array.  This occurs when the following is true:  `sizeof(A) < sizeof(B) < 2 * sizeof(A)`
+
+Note that A and B are interchangeable here depending upon which is the larger of the two sections, but for ease of
+explanation, we'll focus purely on the scenario where A is smaller than B.
 
 
-Let's walk through an `overflow` path:
+Let's walk through an `overlapping` path:
+
+Consider the following array with 2 blocks out of order.  A has 5 items on the left, and B has 8 items on the right.
 
 ```
-|---|---|---|---|---||---|---|---|---|---|----|----|----|
-| 0 | 1 | 2 | 3 | 4 || 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
-|---|---|---|---|---||---|---|---|---|---|----|----|----|
-
+┌───┬───┬───┬───┬───╥───┬───┬───┬───┬───┬───┬───┬───┐
+│ I │ J │ K │ L │ M ║ A │ B │ C │ D │ E │ F │ G │ H │
+└───┴───┴───┴───┴───╨───┴───┴───┴───┴───┴───┴───┴───┘
+```
 First we caclulate the size of the overlap by subtracting the number of items in the smaller block, from the number of
-items in the larger block.
-```
+items in the larger block.  8 minus 5 is 3, and that is our overlapping amount.
 
+For the overlapping path, the algorithm does a 3-way swap between the last 3 elements of A, the first 3 elements of B,
+and the last 3 elements of B.  It is essentially doing a left-rotation by 1 for each corresponding element.
+
+Performing this operation, gives us the following array:
+
+```
+┌───┬───┬───┬───┬───╥───┬───┬───┬───┬───┬───┬───┬───┐
+│ I │ J │ A │ B │ C ║ F │ G │ H │ D │ E │ K │ L │ M │
+└───┴───┴───┴───┴───╨───┴───┴───┴───┴───┴───┴───┴───┘
+```
 
 Now, let's walk through a `remainder` path:
 
@@ -58,7 +72,8 @@ Now, let's walk through a `remainder` path:
 This visualisation shows the algorithm rotating 2 blocks where A (the Left Block) is exactly 2 x B (the Right Block).
 ie. `sizeof(A) == (2 * sizeof(B))`
 
-In a single loop operation the algorithm is able to re-organise the sections into their correct locations
+In a single loop operation the algorithm is able to re-organise the sections into their correct locations.  In practise
+this occurs as a natural outcome of the No-Overlap code-path when `A == 2 * B`
 
 [![Even Three Rotation](https://img.youtube.com/vi/VLeCVCcSNPU/0.jpg)](https://youtu.be/VLeCVCcSNPU?si=IKMUrxyoeJwP5l0m)
 
@@ -80,7 +95,7 @@ starting sizes, the algorithm may take a number of paths on the next cycle to pl
 ## No Overlap
 
 This visualisation shows the algorithm rotating 2 blocks where A (the Left Block) is NOT overlapping with B (the Right Block).
-This occurs when `sizeof(A) > (2 * sizeof(B)`
+This occurs when `sizeof(A) >= (2 * sizeof(B)`
 
 The algorithm this time is able to collapse the operational space from both ends of the main array, by placing all of B,
 and a B-sized portion of A into their correct positions with a single loop operation.  This results in rapidly collapsing

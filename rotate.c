@@ -43,9 +43,9 @@ typedef struct {
 } rotate_function_t;
 
 rotate_function_t rotations[] = {
-//	{juggling_rotation,       "Juggling Rotation"},
+	{juggling_rotation,       "Juggling Rotation"},
 	{griesmills_rotation,     "Gries-Mills Rotation"},
-//	{piston_rotation,         "Piston Rotation"},
+	{piston_rotation,         "Piston Rotation"},
 	{grail_rotation,          "Grail Rotation"},
 	{old_forsort_rotate,      "Old Forsort Rotation"},
 	{helix_rotation,          "Helix Rotation"},
@@ -54,7 +54,7 @@ rotate_function_t rotations[] = {
 	{contrev_rotation,        "ContRev Rotation"},
 	{trinity_rotation,        "Trinity Rotation"},
 	{triple_shift_rotate,     "Triple Shift Rotate"},
-//	{auxiliary_rotation,      "Auxiliary Rotation"},
+	{auxiliary_rotation,      "Aux Rotation (N/2 Aux)"},
 	{bridge_rotation,         "Bridge Rotate (N/3 Aux)"},
 	{NULL, "End Of List"}
 };

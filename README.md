@@ -54,7 +54,11 @@ First we caclulate the size of the overlap by subtracting the number of items in
 items in the larger block.  8 minus 5 is 3, and that is our overlapping amount.
 
 For the overlapping path, the algorithm does a 3-way swap between the last 3 elements of A, the first 3 elements of B,
-and the last 3 elements of B.  It is essentially doing a left-rotation by 1 for each corresponding element.
+and the last 3 elements of B.  It is essentially doing a left-rotation by 1 for each corresponding element.  Just to
+restate, the value of `3` here refers to the calculated amount of overlap mentioned in the prior paragraph.
+
+`A`, `B`, and `C` move to where `K`, `L`, and `M` are.   `K`, `L`, and `M` move to where `F`, `G`, and `H` are,
+and finally `F`, `G`, and `H` are moved to where `A`, `B`, and `C` are.
 
 Performing this operation gives us the following array:
 
@@ -64,11 +68,13 @@ Performing this operation gives us the following array:
    │ I │ J │ A │ B │ C ║ F │ G │ H │ D │ E │ K │ L │ M │
    └───┴───┴───┴───┴───╨───┴───┴───┴───┴───┴───┴───┴───┘
 ```
-`A`, `B`, and `C` moved to where `K`, `L, and `M` were.   `K`, `L`, and `M` moved to where `F`, `G`, and `H` were.
-Finally `F`, `G`, and `H` were moved to where `A`, `B`, and `C` were.
 
-Now the 2nd part of the same operation occurs, swapping the first part of A, with its corresponding location in B.
+
+Now the 2nd part of the overlap path operation occurs, swapping the previously unmoved part of A, with its corresponding location in B.
 This is a basic swap operation, but still takes place within the same loop sequence as the 3-way above
+
+
+The items `I` and `J`, are swapped with `D` and `E`.
 
 Performing this operation gives us the following array:
 
@@ -79,12 +85,10 @@ Performing this operation gives us the following array:
    └───┴───┴───┴───┴───╨───┴───┴───┴───┴───┴───┴───┴───┘
 ```
 
-The items `I` and `J`, were swapped with `D` and `E`.
-
-As we can see, the above sequence now leaves all of what was `B` with all of its items positioned correctly.  The
-original `A` block contains an `A` sized portion from what was at the start `B`, but switched about. `B` is
-effectively removed from further consideration, and the algorithm loops, now focusing on just the `A` block, which
-looks like this:
+As we can see, the above sequence now leaves us with all of the `B` block with all of its items positioned correctly.  The
+original `A` block contains an `A` sized portion from what was at the start the `B` block, but switched about. `B` is
+effectively removed from further consideration, and the algorithm loops, now focusing on just the `A` block, which now
+looks like this, with the new `A` and `B` block tags assigned.
 
 ```
         A         B
@@ -93,8 +97,7 @@ looks like this:
     └───┴───╨───┴───┴───┘
 ```
 
-The pointers and block sizes get updated, and the loop restarts.  We can see that the next loop would follow the
-overlapping path again, with an overlap size of 1.
+We can see that the next loop would follow the overlapping path again, with an overlap size of 1.
 
 The next step with the 3-way swap as described above would leave us with an array like so:
 
@@ -115,6 +118,13 @@ Followed by swapping the `D` with the `B` to give the following array:
 ```
 
 We can see, that just like before, `B` is now fully positioned, leaving just `A` to be rotated.
+
+```
+      A   B
+    ┌───╥───┐
+    │ B ║ A │
+    └───╨───┘
+```
 
 The next step is trivial and left as an exercise for the reader to look at the code and verify how it completes.
 

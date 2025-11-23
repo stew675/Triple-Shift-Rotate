@@ -5,9 +5,11 @@ I present a very fast block rotation algorithm for general use
 This algorithm came about as a result of work on my [ForSort](https://github.com/stew675/ForSort) Sorting Algorithm.
 
 Included is a copy of [Scandum's](https://github.com/scandum) library of rotation algorithms which
-can be found [here](https://github.com/scandum/rotate).
+can be found [here](https://github.com/scandum/rotate).  I highly recommend reading through Scandum's repository as he
+explains well why Block Swap algorithms are important, and he has many excellemt visualisations of the various main stream
+algorithms out there.  Most notably he links to a YouTube video that explains the story: [Sean Parent's C++ Seasoning Talk](https://www.youtube.com/watch?v=qH6sSOr-yk8)
 
-Provided is a test harness utility that can be compiled like so:
+I am also providing a test harness utility that can be compiled like so:
 
 ```cc -O3 -o rotate rotate.c```
 

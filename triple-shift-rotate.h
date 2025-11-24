@@ -182,7 +182,7 @@ reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 {
 	pe--;
 	while (pa < pe) {
-		int32_t	t = *pa;
+		int32_t	t = *pe;
 		*pe-- = *pa;
 		*pa++ = t;
 	}

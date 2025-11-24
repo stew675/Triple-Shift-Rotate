@@ -45,6 +45,7 @@ typedef struct {
 rotate_function_t rotations[] = {
 	{juggling_rotation,       "Juggling Rotation"},
 	{griesmills_rotation,     "Gries-Mills Rotation"},
+	{half_reverse_rotate,     "Half Reverse Rotate"},
 	{piston_rotation,         "Piston Rotation"},
 	{grail_rotation,          "Grail Rotation"},
 	{old_forsort_rotate,      "Old Forsort Rotation"},
@@ -72,6 +73,7 @@ get_function(int i)
 } // get_function 
 
 size_t	test_steps[] = {10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000};
+//size_t	test_steps[] = {2500, 3750, 5000, 6250, 7500, 8750, 10000, 12500};
 
 #define MAX_TIME	50000000000ULL
 #define	MAX_VALS	2000000

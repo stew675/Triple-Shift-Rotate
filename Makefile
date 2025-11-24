@@ -22,7 +22,7 @@ BIN=rotate
 ######################################################################################
 
 CC= gcc
-CC_OPT_FLAGS= -O3 -Wno-restrict
+CC_OPT_FLAGS= -O3 -Wno-restrict -Wno-unused-function
 LD_OPT_FLAGS= -O3
 DEBUG_FLAGS= -Wall # -g -pg --profile -fprofile-arcs -ftest-coverage
 LIBS=

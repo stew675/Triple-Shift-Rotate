@@ -215,6 +215,7 @@ unreverse_and_shift(int32_t *pa, int32_t *pc, size_t na)
 // 3 is good. 4 is very close. 0 seems the same. 1/2 are worse
 #define	MIN_OVERLAP	3
 
+#define	SHR_ROTATE_SIZE	8
 static void
 half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 {
@@ -232,15 +233,15 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 		if ((nc >= MIN_OVERLAP) && (nc <= SMALL_ROTATE_SIZE))
 			return rotate_overlap(pa, pb, pe);
 
-		reverse_block(pa, pb);
-#if 1
-		reverse_block(pa + nb, pb);
-		unreverse_and_shift(pb, pa, nb);
-#else
-		reverse_block(pa, pa + nb);
-		reverse_block(pa + nb, pb);
-		two_way_swap_block(pa, pa + nb, pb);
-#endif
+		if ((pa + nc) <= (pb - nc)) {
+			unreverse_and_shift(pa, pb, nc);
+			unreverse_and_shift(pb, pa, nb);
+			reverse_block(pb, pe - nc);
+		} else {
+			reverse_block(pa, pb);
+			reverse_block(pa + nb, pb);
+			unreverse_and_shift(pb, pa, nb);
+		}
 	} else {
 		if (na <= SMALL_ROTATE_SIZE)
 			return rotate_small(pa, pb, pe);
@@ -250,15 +251,15 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 		if ((nc >= MIN_OVERLAP) && (nc <= SMALL_ROTATE_SIZE))
 			return rotate_overlap(pa, pb, pe);
 
-		reverse_block(pb, pe);
-#if 1
-		reverse_block(pb, pe - na);
-		unreverse_and_shift(pa, pe - na, na);
-#else
-		reverse_block(pb, pe - na);
-		reverse_block(pe - na, pe);
-		two_way_swap_block(pa, pb, pe - na);
-#endif
+		if ((pb + nc) <= (pe - nc)) {
+			unreverse_and_shift(pe - nc, pb, nc);
+			unreverse_and_shift(pa, pe - na, na);
+			reverse_block(pa + nc, pb);
+		} else {
+			reverse_block(pb, pe);
+			reverse_block(pb, pe - na);
+			unreverse_and_shift(pa, pe - na, na);
+		}
 	}
 }
 

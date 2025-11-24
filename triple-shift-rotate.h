@@ -69,7 +69,7 @@
 // 2000-8000 item ranges.
 // TODO - Find a solution that doesn't require as much stack space (even if it
 // is just 256 bytes).
-#define SMALL_ROTATE_SIZE      256
+#define SMALL_ROTATE_SIZE      64
 
 static void two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe, int32_t * restrict pb);
 

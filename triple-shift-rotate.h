@@ -69,7 +69,7 @@
 // 2000-8000 item ranges.
 // TODO - Find a solution that doesn't require as much stack space (even if it
 // is just 256 bytes).
-#define SMALL_ROTATE_SIZE      64
+#define SMALL_ROTATE_SIZE      256
 
 static void two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe, int32_t * restrict pb);
 
@@ -152,6 +152,20 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 
 // Swaps PA with PB, and then PB with PC. Terminates when PA reaches PE
 static void
+three_way_swap_block(int32_t * restrict pa, int32_t * restrict pe,
+                     int32_t * restrict pb, int32_t * restrict pc)
+{
+	while (pa < pe) {
+		int32_t	t = *pa;
+		*pa++ = *pb;
+		*pb++ = *pc;
+		*pc++ = t;
+	}
+} // three_way_swap_block
+
+
+// Swaps PA with PB. Terminates when PA reaches PE
+static void
 two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe,
                    int32_t * restrict pb)
 {
@@ -163,18 +177,39 @@ two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe,
 } // two_way_swap_block
 
 
-// Swaps PA with PB, and then PB with PC. Terminates when PA reaches PE
 static void
-three_way_swap_block(int32_t * restrict pa, int32_t * restrict pe,
-                     int32_t * restrict pb, int32_t * restrict pc)
+reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 {
+	pe--;
 	while (pa < pe) {
 		int32_t	t = *pa;
-		*pa++ = *pb;
-		*pb++ = *pc;
-		*pc++ = t;
+		*pe-- = *pa;
+		*pa++ = t;
 	}
-} // three_way_swap_block
+} // reverse_block
+
+
+static void
+half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
+{
+	int32_t	*pb = pa + na, *pe = pb + nb;
+
+	if (na == nb)
+		return two_way_swap_block(pa, pb, pb);
+
+	if (na > nb) {
+		reverse_block(pa, pb);
+		reverse_block(pa, pa + nb);
+		reverse_block(pa + nb, pb);
+		two_way_swap_block(pa, pa + nb, pb);
+	} else {
+		reverse_block(pb, pe);
+		reverse_block(pb, pe - na);
+		reverse_block(pe - na, pe);
+		two_way_swap_block(pa, pb, pe - na);
+	}
+}
+
 
 // 3 is good. 4 is very close. 0 seems the same. 1/2 are worse
 #define	MIN_OVERLAP	3
@@ -189,14 +224,22 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 
 			if (na <= SMALL_ROTATE_SIZE) {
 				if (na)
+#if 0
+					half_reverse_rotate(pa, na, nb);
+#else
 					rotate_small(pa, pb, pe);
+#endif
 				return;
 			}
 
 			if (nc < na) {
 				// Overflow scenario
 				if ((nc >= MIN_OVERLAP) && (nc <= SMALL_ROTATE_SIZE))
+#if 0
+					half_reverse_rotate(pa, na, nb);
+#else
 					return rotate_overlap(pa, pb, pe);
+#endif
 
 				three_way_swap_block(pb - nc, pb, pb, pe - nc);
 				two_way_swap_block(pa, pb - nc, pb + nc);
@@ -211,17 +254,26 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 
 			if (nb <= SMALL_ROTATE_SIZE) {
 				if (nb)
+#if 0
+					half_reverse_rotate(pa, na, nb);
+#else
 					rotate_small(pa, pb, pe);
+#endif
 				return;
 			}
 
 			if (nc < nb) {
 				// Overflow scenario
 				if ((nc >= MIN_OVERLAP) && (nc <= SMALL_ROTATE_SIZE))
+#if 0
+					half_reverse_rotate(pa, na, nb);
+#else
 					return rotate_overlap(pa, pb, pe);
+#endif
 
 				three_way_swap_block(pb, pb + nc, pb - nc, pa);
 				two_way_swap_block(pb + nc, pe, pa + nc);
+
 				pa = pb;  na = nc;  pb += nc;  nb -= nc;
 			} else {
 				// Remainder scenario
@@ -264,6 +316,7 @@ old_forsort_rotate(int32_t *pa, size_t na, size_t nb)
 		}
 	}
 } // old_forsort_rotate
+
 
 //-----------------------------------------------------------------
 //                     #define cleanup

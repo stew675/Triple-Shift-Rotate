@@ -78,6 +78,10 @@
 #define SMALL_BUF_SIZE 1
 #endif
 
+// Function prototypes
+static void two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe, int32_t * restrict pb);
+
+
 // Completely optional function to handle degenerate scenario of rotating a
 // tiny block with a (typically MUCH) larger block
 static void
@@ -102,19 +106,6 @@ rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
 		memcpy(pa, buf, nb * sizeof(*pa));
 	}
 } // rotate_small
-
-
-// Swaps PA with PB. Terminates when PA reaches PE
-static void
-two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe,
-                   int32_t * restrict pb)
-{
-	while (pa < pe) {
-		int32_t	t = *pa;
-		*pa++ = *pb;
-		*pb++ = t;
-	}
-} // two_way_swap_block
 
 
 // Uses a limited amount of stack space to rotate two blocks that overlap by
@@ -159,17 +150,23 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 static void
 reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 {
+#if 1
+	for (int32_t t; pa < --pe; t = *pe, *pe = *pa, *pa++ = t);
+#else
 	pe--;
-	while (pa < pe) {
+	while (pa < --pe) {
 		int32_t	t = *pe;
-		*pe-- = *pa;
+		*pe = *pa;
 		*pa++ = t;
 	}
+#endif
 } // reverse_block
 
 
+// Reverses the right-side block on top of the left block,
+// but straight-swaps the left block to the right-side.
 static void
-unreverse_and_shift(int32_t *pa, int32_t *pc, size_t na)
+reverse_and_shift(int32_t *pa, int32_t *pc, size_t na)
 {
 	int32_t *pb = pa + (na - 1);
 	int32_t *pd = pc + (na - 1);
@@ -188,7 +185,7 @@ unreverse_and_shift(int32_t *pa, int32_t *pc, size_t na)
 		*pa = *pc;
 		*pc = t;
 	}
-} // unreverse and shift
+} // reverse_and_shift
 
 
 static void
@@ -207,13 +204,13 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 				return rotate_overlap(pa, pb, pe);
 
 			if ((pb + nc) <= (pe - nc)) {
-				unreverse_and_shift(pe - nc, pb, nc);
-				unreverse_and_shift(pa, pe - na, na);
+				reverse_and_shift(pe - nc, pb, nc);
+				reverse_and_shift(pa, pe - na, na);
 				reverse_block(pa + nc, pb);
 			} else {
 				reverse_block(pb, pe);
 				reverse_block(pb, pe - na);
-				unreverse_and_shift(pa, pe - na, na);
+				reverse_and_shift(pa, pe - na, na);
 			}
 		} else if (na == nb) {
 			two_way_swap_block(pa, pb, pb);
@@ -227,17 +224,30 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 				return rotate_overlap(pa, pb, pe);
 
 			if ((pa + nc) <= (pb - nc)) {
-				unreverse_and_shift(pa, pb, nc);
-				unreverse_and_shift(pb, pa, nb);
+				reverse_and_shift(pa, pb, nc);
+				reverse_and_shift(pb, pa, nb);
 				reverse_block(pb, pe - nc);
 			} else {
 				reverse_block(pa, pb);
 				reverse_block(pa + nb, pb);
-				unreverse_and_shift(pb, pa, nb);
+				reverse_and_shift(pb, pa, nb);
 			}
 		}
 	}
 } // half_reverse_rotate
+
+
+// Swaps PA with PB. Terminates when PA reaches PE
+static void
+two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe,
+                   int32_t * restrict pb)
+{
+	while (pa < pe) {
+		int32_t	t = *pa;
+		*pa++ = *pb;
+		*pb++ = t;
+	}
+} // two_way_swap_block
 
 
 // When given 3 blocks of equal size, everything in B goes to A, everything

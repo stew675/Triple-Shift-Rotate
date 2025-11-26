@@ -193,6 +193,27 @@ When we start off with one block MUCH smaller than the other, what happens there
 swaps of the smaller block through the larger block until we reach the point where overlapping occurs, and then we can
 employ the algorithm described above to finish off the rotation of the two blocks.
 
+## Visualisation of V2
+
+This first visualisation shows the swapping in place of 2 blocks of roughly even size.  Here we can clearly see the 
+`O` block getting used to "roll" the values that are streaming from one side to the other.  It creates a distinctive
+rippling pattern as ever larger values get rotated through the section on their way to being placed correctly.  This,
+to me, is a great visualisation of the algorithm walk-through that we just went through above.
+
+![Rolling Up A Small Overlap](./images/Triple-Shift-Rotate-V2-RollUp.gif)
+
+The following GIF shows the V2 algorithm gradually swapping up displaced values from a very small block on the right.
+The initial values get swapped into place almost immediately, but that then leaves the part of the larger A block that
+needs to be rolled up repeatedly until it can be merged in.  This visualisation shows that block "rolling" very well:
+
+![Rolling Up A Small Right](./images/Triple-Shift-Rotate-V2-Small-Right.gif)
+
+Finally we just have a visualiation of a typical sort of Rotate in place.  In essense it's very similar to the first
+visualisation above, just with a much larger `O` block:
+
+![Regular Rotation](./images/Triple-Shift-Rotate-V2-Regular.gif)
+
+
 # The V1 Algorithm
 
 The Triple-Shift-Rotation algorithm is, itself, a derivation of the Gries-Mills progressive rotation algorithm that many

@@ -27,7 +27,172 @@ By all means though, do use Scandum's bench test as well, to sample corner case 
 not included here, but can be found at his repository linked above.
 
 
-# The Algorithm
+# The V2 Algorithm
+
+Added on Nov 25th, the V2 Algorithm is an evolution on the V1 Algorithm below, and address the matter of requiring two
+different code-paths depending on if the two blocks were overlapping or not.  The V2 Algorithm instead "rolls" overlapping
+values through the overlapping section.  In a sense, the overlapping section between two blocks essentially becomes a
+circular buffer for items on their way to being deposited into their correct location.  This also keeps CPU cache locality
+much more consistently than the V1 algorithm, and as a consequence it is observed to consistently run 5% faster than V1.
+Further, this improvement appears to carry well to all CPU architectures that I've tried it one, raising my confidence in
+stating that the Triple Shift V2 Algorithm is almost undoubtedly the fastest algorithm that can be used in any scenario.
+
+## How the V2 Algorithm Works
+
+Consider the following array with 2 blocks out of order.  A has 5 items on the left, and B has 8 items on the right.
+
+```
+             A                     B
+   ┌───┬───┬───┬───┬───╥───┬───┬───┬───┬───┬───┬───┐
+   │ I │ J │ K │ L │ M ║ A │ B │ C │ D │ E │ F │ G │
+   └───┴───┴───┴───┴───╨───┴───┴───┴───┴───┴───┴───┘
+```
+
+Here we see two blocks, A and B, and A with 5 items, and B with 7 items.  Triple Shift V2 uses the 2 item overlapping
+section to "roll" the values from B into place while directly placing items from A into place.
+
+The main function that gets used here is the `three_way_swap_block_positive()` function that when given 3 blocks of
+equal size, B1, B2, and B3, it will move B3 to B2, B2 to B1, and B1 to B3, effectively doing a left rotate by 1 across
+all items in the 3 blocks.  This can be achieved by doing 2 swap operations, being `swap(b1, b2`), followed by `swap(b2, b3)`
+for all corresponding elements within the 3 blocks.
+
+Since the A block is smaller than B here, we need to "roll" 5 elements from B through the overlapping section of 2 items
+into A.  Every time we reach the end of the overlapping section, we just move the pointer back to the start of the
+overlapping section and continue.
+
+The following diagrams will help demonstrate this more clearly.
+
+### Roll 1
+
+First, let's break up our array into 3 blocks.  `A`, just as before, `O`, being the 2 items that overlap, and `B`
+being the remainder of the original `B` block, minus the overlap.  `B` is also sized to 5 items, just like `A` is.
+
+Our divided array now looks like so:
+
+```
+   ┌───┬───┬───┬───┬───╥───┬───╥───┬───┬───┬───┬───┐
+   │ I │ J │ K │ L │ M ║ A │ B ║ C │ D │ E │ F │ G │
+   └───┴───┴───┴───┴───╨───┴───╨───┴───┴───┴───┴───┘
+```
+
+Now we'll be rotate the first elements from each of the 3 blocks left by 1.  This is the same as swapping `I` and `A`, and then `I` with `C`.
+Swapping `I` and `A` looks like so:
+
+```
+             A             O             B
+   ┌───┬───┬───┬───┬───╥───┬───╥───┬───┬───┬───┬───┐
+   │ A │ J │ K │ L │ M ║ I │ B ║ C │ D │ E │ F │ G │
+   └───┴───┴───┴───┴───╨───┴───╨───┴───┴───┴───┴───┘
+     ↑                   ↑ 
+     └───────────────────┘ 
+          Swap I and A
+```
+Followed by swapping `I` and `C`.  The makes the array look like so:
+```
+
+             A             O       B
+   ┌───┬───┬───┬───┬───╥───┬───╥───┬───┬───┬───┬───┐
+   │ A │ J │ K │ L │ M ║ C │ B ║ I │ D │ E │ F │ G │
+   └───┴───┴───┴───┴───╨───┴───╨───┴───┴───┴───┴───┘
+                         ↑       ↑
+                         └───────┘
+                        Swap I and C
+```
+
+We repeat this for `J`, `B`, and `D` as well, which makes our array look like so:
+
+```
+             A             O       B
+   ┌───┬───┬───┬───┬───╥───┬───╥───┬───┬───┬───┬───┐
+   │ A │ B │ K │ L │ M ║ C │ D ║ I │ J │ E │ F │ G │
+   └───┴───┴───┴───┴───╨───┴───╨───┴───┴───┴───┴───┘
+```
+
+Now, let's pause and observe that `C` and `D` are now in the `O` block, but we've hit the end of O.  What we do here is
+just reset the pointer to `O` back to the start again, and keep rolling the items through it.
+
+This means we now swap `K` with `C`, and then `K` with `E`.  This leaves us with the following array:
+
+```
+             A             O             B
+   ┌───┬───┬───┬───┬───╥───┬───╥───┬───┬───┬───┬───┐
+   │ A │ B │ C │ L │ M ║ K │ D ║ I │ J │ E │ F │ G │
+   └───┴───┴───┴───┴───╨───┴───╨───┴───┴───┴───┴───┘
+             ↑           ↑ 
+             └───────────┘ 
+             Swap K and C
+```
+Then swap K and E
+```
+             A             O             B
+   ┌───┬───┬───┬───┬───╥───┬───╥───┬───┬───┬───┬───┐
+   │ A │ B │ C │ L │ M ║ E │ D ║ I │ J │ K │ F │ G │
+   └───┴───┴───┴───┴───╨───┴───╨───┴───┴───┴───┴───┘
+                         ↑               ↑ 
+                         └───────────────┘ 
+                           Swap K and E
+```
+
+Now do `L`, `D` and `F`
+
+```
+             A             O             B
+   ┌───┬───┬───┬───┬───╥───┬───╥───┬───┬───┬───┬───┐
+   │ A │ B │ C │ D │ M ║ E │ F ║ I │ J │ K │ L │ G │
+   └───┴───┴───┴───┴───╨───┴───╨───┴───┴───┴───┴───┘
+```
+
+Notice here how we've almost completed placing all of A, and all of the first portion of B into their correct locations.
+Let's reset the `O` location again, and repeat once more with `M`, `E` and `G`
+
+```
+             A             O             B
+   ┌───┬───┬───┬───┬───╥───┬───╥───┬───┬───┬───┬───┐
+   │ A │ B │ C │ D │ E ║ G │ F ║ I │ J │ K │ L │ M │
+   └───┴───┴───┴───┴───╨───┴───╨───┴───┴───┴───┴───┘
+```
+...and here we see that `A` through `E` are correctly placed, and `I` through `M` are correctly placed.
+
+The `A` and `B` blocks are removed from further consideration, and we now focus on just the `O` block
+
+We see that the `O` block is disordered, with `G` and `F` swapped around, because we had finished moving `A` and `B`
+while only part way through the `O` block.
+
+So, we set our new `A` to be the portion of `O` that had been rolled, and `B` to be the portion that we never go to.
+This leaves the block that we pass to the next loop looking like so:
+
+```
+      A   B
+    ┌───╥───┐
+    │ G ║ F │
+    └───╨───┘
+```
+
+Since both blocks are of even size, we just do a straight swap, as opposed to the `rolling swap` from above, and then
+we're done!
+
+```
+      A   B
+    ┌───╥───┐
+    │ F ║ G │
+    └───╨───┘
+      ↑   ↑
+      └───┘
+   Swap F and G
+```
+
+...and that's it!
+
+Because our `O` block gets used as a type of `ring buffer` to roll items through, this means that the `O` block has a very
+strong CPU cache locality.  Additionally, because we're stepping through `A` and `B` in a linear fashion, this allows the
+CPU to employ any read-ahead/pre-load mechanisms very effectively, resulting in "streaming" the transfer of items from
+one side to the other.
+
+When we start off with one block MUCH smaller than the other, what happens there is we just keeping doing straight-up block
+swaps of the smaller block through the larger block until we reach the point where overlapping occurs, and then we can
+employ the algorithm described above to finish off the rotation of the two blocks.
+
+# The V1 Algorithm
 
 The Triple-Shift-Rotation algorithm is, itself, a derivation of the Gries-Mills progressive rotation algorithm that many
 rotation algorithm variants are based upon, but Triple-Shift adds in the notion of 3-way swaps.  A 3-way swap is, in fact,

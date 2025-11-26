@@ -39,7 +39,7 @@ stating that the Triple Shift V2 Algorithm is almost undoubtedly the fastest alg
 
 ## How the V2 Algorithm Works
 
-Consider the following array with 2 blocks out of order.  A has 5 items on the left, and B has 8 items on the right.
+Consider the following array with 2 blocks out of order.  A has 5 items on the left, and B has 7 items on the right.
 
 ```
              A                     B
@@ -48,8 +48,7 @@ Consider the following array with 2 blocks out of order.  A has 5 items on the l
    └───┴───┴───┴───┴───╨───┴───┴───┴───┴───┴───┴───┘
 ```
 
-Here we see two blocks, A and B, and A with 5 items, and B with 7 items.  Triple Shift V2 uses the 2 item overlapping
-section to "roll" the values from B into place while directly placing items from A into place.
+Triple Shift V2 uses the 2 item overlapping section to "roll" the values from B into place while directly placing items from A into place.
 
 The main function that gets used here is the `three_way_swap_block_positive()` function that when given 3 blocks of
 equal size, B1, B2, and B3, it will move B3 to B2, B2 to B1, and B1 to B3, effectively doing a left rotate by 1 across

@@ -61,7 +61,7 @@ overlapping section and continue.
 
 The following diagrams will help demonstrate this more clearly.
 
-### Roll 1
+### Walkthrough
 
 First, let's break up our array into 3 blocks.  `A`, just as before, `O`, being the 2 items that overlap, and `B`
 being the remainder of the original `B` block, minus the overlap.  `B` is also sized to 5 items, just like `A` is.
@@ -159,7 +159,7 @@ The `A` and `B` blocks are removed from further consideration, and we now focus 
 We see that the `O` block is disordered, with `G` and `F` swapped around, because we had finished moving `A` and `B`
 while only part way through the `O` block.
 
-So, we set our new `A` to be the portion of `O` that had been rolled, and `B` to be the portion that we never go to.
+So, we set our new `A` to be the portion of `O` that had been rolled, and `B` to be the portion that we never got to.
 This leaves the block that we pass to the next loop looking like so:
 
 ```

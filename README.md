@@ -69,12 +69,14 @@ being the remainder of the original `B` block, minus the overlap.  `B` is also s
 Our divided array now looks like so:
 
 ```
+             A             O             B
    ┌───┬───┬───┬───┬───╥───┬───╥───┬───┬───┬───┬───┐
    │ I │ J │ K │ L │ M ║ A │ B ║ C │ D │ E │ F │ G │
    └───┴───┴───┴───┴───╨───┴───╨───┴───┴───┴───┴───┘
 ```
 
 Now we'll be rotate the first elements from each of the 3 blocks left by 1.  This is the same as swapping `I` and `A`, and then `I` with `C`.
+
 Swapping `I` and `A` looks like so:
 
 ```

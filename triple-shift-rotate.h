@@ -163,8 +163,6 @@ reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 } // reverse_block
 
 
-// Reverses the right-side block on top of the left block,
-// but straight-swaps the left block to the right-side.
 static void
 reverse_and_shift(int32_t *pa, int32_t *pc, size_t na)
 {
@@ -191,7 +189,7 @@ reverse_and_shift(int32_t *pa, int32_t *pc, size_t na)
 static void
 half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 {
-	int32_t	*pb = pa + na, *pe = pb + nb;
+	int32_t	*pb = pa + na, *pc = pa + nb, *pe = pb + nb;
 
 	if (na && nb) {
 		if (na < nb) {
@@ -203,17 +201,17 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 			if (nc <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
 
-			if ((pb + nc) <= (pe - nc)) {
+			if (pc <= (pe - nc)) {
 				reverse_and_shift(pe - nc, pb, nc);
-				reverse_and_shift(pa, pe - na, na);
+				reverse_and_shift(pa, pc, na);
 				reverse_block(pa + nc, pb);
 			} else {
 				reverse_block(pb, pe);
-				reverse_block(pb, pe - na);
-				reverse_and_shift(pa, pe - na, na);
+				reverse_block(pb, pc);
+				reverse_and_shift(pa, pc, na);
 			}
 		} else if (na == nb) {
-			two_way_swap_block(pa, pb, pb);
+			two_way_swap_block(pb, pe, pa);
 		} else {
 			if (nb <= SMALL_ROTATE_SIZE)
 				return rotate_small(pa, pb, pe);
@@ -223,13 +221,13 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 			if (nc <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
 
-			if ((pa + nc) <= (pb - nc)) {
-				reverse_and_shift(pa, pb, nc);
+			if ((pa + nc) <= pc) {
+				reverse_and_shift(pa, pc, nc);
 				reverse_and_shift(pb, pa, nb);
 				reverse_block(pb, pe - nc);
 			} else {
 				reverse_block(pa, pb);
-				reverse_block(pa + nb, pb);
+				reverse_block(pc, pb);
 				reverse_and_shift(pb, pa, nb);
 			}
 		}

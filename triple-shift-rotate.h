@@ -114,28 +114,41 @@ static void
 rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 {
 	size_t	na = pb - pa, nb = pe - pb;
-	size_t	nc = (na < nb) ? (nb - na) : (na - nb);
-	int32_t	buf[SMALL_BUF_SIZE], *pc = pa + nb, *pd = pe - nc;
-
-	assert(nc <= SMALL_BUF_SIZE);
+	int32_t	buf[SMALL_BUF_SIZE];
 
 	if (na < nb) {
 		// Steps are:
 		// 1.  Copy out the overlapping amount from the end of B into the buffer
 		// 2.  Swap A with B, while moving B over to the end of the array
 		// 3.  Copy the buffer back to the end of where B is now
+		size_t	nc = nb - na;
+		int32_t	*pc = pb, *pd = pe - nc;
+
+		assert(nc <= SMALL_BUF_SIZE);
 		memcpy(buf, pd, nc * sizeof(*pa));
-		for (int32_t *ta = pb, *tb = pd, *tc = pe; ta > pa; *--tc = *--ta, *ta = *--tb);
-//		for (pc = pb; pc > pa; *--pe = *--pc, *pc = *--pd);
+		if (nb < 8192) {
+			for ( ; pc > pa; *--pe = *--pc, *pc = *--pd);
+		} else {
+			memmove(pc, pb, na * sizeof(*pa));
+			two_way_swap_block(pa, pb, pc);
+		}
 		memcpy(pb, buf, nc * sizeof(*pa));
 	} else {
 		// Steps are:
 		// 1.  Copy out the overlapping amount from the end of A into the buffer
 		// 2.  Swap non-overlapping portion of A with B, and move B back to PC
 		// 3.  Copy the buffer back to the end of where A now is
+		size_t	nc = na - nb;
+		int32_t	*pc = pa + nb, *pd = pe - nc;
+
+		assert(nc <= SMALL_BUF_SIZE);
 		memcpy(buf, pc, nc * sizeof(*pa));
-		for (int32_t *ta = pa, *tb = pc, *tc = pb; tc < pe; *tb++ = *ta, *ta++ = *tc++);
-//		for (pc = pc; pc < pd; *pc++ = *pa, *pa++ = *pb++);
+		if (na < 8192) {
+			for ( ; pc < pd; *pc++ = *pa, *pa++ = *pb++);
+		} else {
+			memmove(pc, pb, nb * sizeof(*pa));
+			two_way_swap_block(pa, pc, pc);
+		}
 		memcpy(pd, buf, nc * sizeof(*pa));
 	}
 } // rotate_overlap

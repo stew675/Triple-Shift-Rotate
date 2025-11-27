@@ -85,22 +85,21 @@ static void two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe, int
 // Completely optional function to handle degenerate scenario of rotating a
 // tiny block with a (typically MUCH) larger block
 static void
-rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
+rotate_small(int32_t *pa, int32_t *pb, size_t na, size_t nb)
 {
-	size_t	na = pb - pa, nb = pe - pb;
-
-	int32_t	buf[SMALL_BUF_SIZE];
-	int32_t	*pc = pa + nb;
-
 	// Steps are:
 	// 1.  Copy out the smaller of the two arrays into the buffer entirely
 	// 2.  Move the larger of the arrays over to where the smaller was
 	// 3.  Copy the smaller array data back to the hole created by the move
 	if (na < nb) {
+		int32_t	buf[SMALL_BUF_SIZE], *pc = pa + nb;
+
 		memcpy(buf, pa, na * sizeof(*pa));
 		memmove(pa, pb, nb * sizeof(*pa));
 		memcpy(pc, buf, na * sizeof(*pa));
 	} else {
+		int32_t	buf[SMALL_BUF_SIZE], *pc = pa + nb;
+
 		memcpy(buf, pb, nb * sizeof(*pa));
 		memmove(pc, pa, na * sizeof(*pa));
 		memcpy(pa, buf, nb * sizeof(*pa));
@@ -111,9 +110,8 @@ rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
 // Uses a limited amount of stack space to rotate two blocks that overlap by
 // only a small amount.  It's basically a special variant of rotate_small()
 static void
-rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
+rotate_overlap(int32_t *pa, int32_t *pb, size_t na, size_t nb)
 {
-	size_t	na = pb - pa, nb = pe - pb;
 	int32_t	buf[SMALL_BUF_SIZE];
 
 	if (na < nb) {
@@ -121,8 +119,8 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 		// 1.  Copy out the overlapping amount from the end of B into the buffer
 		// 2.  Swap A with B, while moving B over to the end of the array
 		// 3.  Copy the buffer back to the end of where B is now
+		int32_t	*pc = pb, *pd = pb + na, *pe = pb + nb;
 		size_t	nc = nb - na;
-		int32_t	*pc = pb, *pd = pe - nc;
 
 		assert(nc <= SMALL_BUF_SIZE);
 		memcpy(buf, pd, nc * sizeof(*pa));
@@ -133,8 +131,8 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 		// 1.  Copy out the overlapping amount from the end of A into the buffer
 		// 2.  Swap non-overlapping portion of A with B, and move B back to PC
 		// 3.  Copy the buffer back to the end of where A now is
+		int32_t	*pc = pa + nb, *pd = pc + nb;
 		size_t	nc = na - nb;
-		int32_t	*pc = pa + nb, *pd = pe - nc;
 
 		assert(nc <= SMALL_BUF_SIZE);
 		memcpy(buf, pc, nc * sizeof(*pa));
@@ -182,12 +180,12 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 	if (na && nb) {
 		if (na < nb) {
 			if (na <= SMALL_ROTATE_SIZE)
-				return rotate_small(pa, pb, pe);
+				return rotate_small(pa, pb, na, nb);
 
 			size_t nc = nb - na;
 
 			if (nc <= SMALL_ROTATE_SIZE)
-				return rotate_overlap(pa, pb, pe);
+				return rotate_overlap(pa, pb, na, nb);
 
 			if (pc <= (pe - nc)) {
 				reverse_and_shift(pe - nc, pb, nc);
@@ -202,12 +200,12 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 			two_way_swap_block(pb, pe, pa);
 		} else {
 			if (nb <= SMALL_ROTATE_SIZE)
-				return rotate_small(pa, pb, pe);
+				return rotate_small(pa, pb, na, nb);
 
 			size_t nc = na - nb;
 
 			if (nc <= SMALL_ROTATE_SIZE)
-				return rotate_overlap(pa, pb, pe);
+				return rotate_overlap(pa, pb, na, nb);
 
 			if ((pa + nc) <= pc) {
 				reverse_and_shift(pa, pc, nc);
@@ -258,13 +256,13 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 	for (int32_t *pb = pa + na, *pe = pb + nb; na; nb = pe - pb, na = pb - pa) {
 		if (na < nb) {
 			if (na <= SMALL_ROTATE_SIZE)
-				return rotate_small(pa, pb, pe);
+				return rotate_small(pa, pb, na, nb);
 
 			// no = number of overlapping items
 			size_t	no = nb - na;
 
 			if (no <= SMALL_ROTATE_SIZE)
-				return rotate_overlap(pa, pb, pe);
+				return rotate_overlap(pa, pb, na, nb);
 
 			// Temporary A Block, B Block and Stop Pointers
 			pe -= na;
@@ -283,13 +281,13 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			return;
 		} else {
 			if (nb <= SMALL_ROTATE_SIZE)
-				return rotate_small(pa, pb, pe);
+				return rotate_small(pa, pb, na, nb);
 
 			// no = number of overlapping items
 			size_t	no = na - nb;
 
 			if (no <= SMALL_ROTATE_SIZE)
-				return rotate_overlap(pa, pb, pe);
+				return rotate_overlap(pa, pb, na, nb);
 
 			// Temporary A Block, B Block and Stop Pointers
 			pa += nb;
@@ -313,12 +311,12 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 	for (int32_t *pb = pa + na, *pe = pb + nb; na; ) {
 		if (na < nb) {
 			if (na <= SMALL_ROTATE_SIZE)
-				return rotate_small(pa, pb, pe);
+				return rotate_small(pa, pb, na, nb);
 
 			size_t  nc = nb - na;
 
 			if (nc <= SMALL_ROTATE_SIZE)
-				return rotate_overlap(pa, pb, pe);
+				return rotate_overlap(pa, pb, na, nb);
 
 			if (nc < na) {
 				// Overflow scenario
@@ -336,12 +334,12 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 			return;
 		} else {
 			if (nb <= SMALL_ROTATE_SIZE)
-				return rotate_small(pa, pb, pe);
+				return rotate_small(pa, pb, na, nb);
 
 			size_t  nc = na - nb;
 
 			if (nc <= SMALL_ROTATE_SIZE)
-				return rotate_overlap(pa, pb, pe);
+				return rotate_overlap(pa, pb, na, nb);
 
 			if (nc < nb) {
 				// Overflow scenario

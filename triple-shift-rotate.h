@@ -126,12 +126,7 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 
 		assert(nc <= SMALL_BUF_SIZE);
 		memcpy(buf, pd, nc * sizeof(*pa));
-		if (nb < 8192) {
-			for ( ; pc > pa; *--pe = *--pc, *pc = *--pd);
-		} else {
-			memmove(pc, pb, na * sizeof(*pa));
-			two_way_swap_block(pa, pb, pc);
-		}
+		for ( ; pc > pa; *--pe = *--pc, *pc = *--pd);
 		memcpy(pb, buf, nc * sizeof(*pa));
 	} else {
 		// Steps are:
@@ -143,12 +138,7 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 
 		assert(nc <= SMALL_BUF_SIZE);
 		memcpy(buf, pc, nc * sizeof(*pa));
-		if (na < 8192) {
-			for ( ; pc < pd; *pc++ = *pa, *pa++ = *pb++);
-		} else {
-			memmove(pc, pb, nb * sizeof(*pa));
-			two_way_swap_block(pa, pc, pc);
-		}
+		for ( ; pc < pd; *pc++ = *pa, *pa++ = *pb++);
 		memcpy(pd, buf, nc * sizeof(*pa));
 	}
 } // rotate_overlap
@@ -238,11 +228,15 @@ static void
 two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe,
                    int32_t * restrict pb)
 {
+#if 1
+	for (int32_t t; pa < pe; t = *pa, *pa++ = *pb, *pb++ = t);
+#else
 	while (pa < pe) {
 		int32_t	t = *pa;
 		*pa++ = *pb;
 		*pb++ = t;
 	}
+#endif
 } // two_way_swap_block
 
 
@@ -252,12 +246,16 @@ static void
 three_way_swap_block_negative(int32_t * restrict pa, int32_t * restrict pe,
                      int32_t * restrict pb, int32_t * restrict pc)
 {
+#if 1
+	for (int32_t t; pa > pe; t = *--pa, *pa = *--pb, *pb = *--pc, *pc = t);
+#else
 	for (int32_t t; pa > pe; ) {
 		t = *--pa;
 		*pa = *--pb;
 		*pb = *--pc;
 		*pc = t;
 	}
+#endif
 } // three_way_swap_block_negative
 
 
@@ -267,12 +265,16 @@ static void
 three_way_swap_block_positive(int32_t * restrict pa, int32_t * restrict pe,
                      int32_t * restrict pb, int32_t * restrict pc)
 {
+#if 1
+	for (int32_t t; pa < pe; t = *pa, *pa++ = *pb, *pb++ = *pc, *pc++ = t);
+#else
 	for (int32_t t; pa < pe; ) {
 		t = *pa;
 		*pa++ = *pb;
 		*pb++ = *pc;
 		*pc++ = t;
 	}
+#endif
 } // three_way_swap_block_positive
 
 
@@ -284,16 +286,17 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			if (na <= SMALL_ROTATE_SIZE)
 				return rotate_small(pa, pb, pe);
 
-			size_t	delta = nb - na;
+			// no = number of overlapping items
+			size_t	no = nb - na;
 
-			if (delta <= SMALL_ROTATE_SIZE)
+			if (no <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
 
 			// Temporary A Block, B Block and Stop Pointers
 			pe -= na;
 			int32_t	*ta = pa, *tb = pe, *stop = pe;
 
-			for ( ; (pb - ta) > delta; ta += delta, tb += delta)
+			for ( ; (pb - ta) > no; ta += no, tb += no)
 				three_way_swap_block_positive(pb, stop, tb, ta);
 
 			three_way_swap_block_positive(ta, pb, pb, tb);
@@ -308,16 +311,17 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			if (nb <= SMALL_ROTATE_SIZE)
 				return rotate_small(pa, pb, pe);
 
-			size_t	delta = na - nb;
+			// no = number of overlapping items
+			size_t	no = na - nb;
 
-			if (delta <= SMALL_ROTATE_SIZE)
+			if (no <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
 
 			// Temporary A Block, B Block and Stop Pointers
 			pa += nb;
 			int32_t	*ta = pa, *tb = pe, *stop = pa;
 
-			for ( ; (tb - pb) > delta; ta -= delta, tb -= delta)
+			for ( ; (tb - pb) > no; ta -= no, tb -= no)
 				three_way_swap_block_negative(pb, stop, ta, tb);
 
 			three_way_swap_block_negative(tb, pb, pb, ta);

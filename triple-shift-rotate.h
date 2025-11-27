@@ -228,15 +228,7 @@ static void
 two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe,
                    int32_t * restrict pb)
 {
-#if 1
 	for (int32_t t; pa < pe; t = *pa, *pa++ = *pb, *pb++ = t);
-#else
-	while (pa < pe) {
-		int32_t	t = *pa;
-		*pa++ = *pb;
-		*pb++ = t;
-	}
-#endif
 } // two_way_swap_block
 
 
@@ -246,16 +238,7 @@ static void
 three_way_swap_block_negative(int32_t * restrict pa, int32_t * restrict pe,
                      int32_t * restrict pb, int32_t * restrict pc)
 {
-#if 1
 	for (int32_t t; pa > pe; t = *--pa, *pa = *--pb, *pb = *--pc, *pc = t);
-#else
-	for (int32_t t; pa > pe; ) {
-		t = *--pa;
-		*pa = *--pb;
-		*pb = *--pc;
-		*pc = t;
-	}
-#endif
 } // three_way_swap_block_negative
 
 
@@ -265,16 +248,7 @@ static void
 three_way_swap_block_positive(int32_t * restrict pa, int32_t * restrict pe,
                      int32_t * restrict pb, int32_t * restrict pc)
 {
-#if 1
 	for (int32_t t; pa < pe; t = *pa, *pa++ = *pb, *pb++ = *pc, *pc++ = t);
-#else
-	for (int32_t t; pa < pe; ) {
-		t = *pa;
-		*pa++ = *pb;
-		*pb++ = *pc;
-		*pc++ = t;
-	}
-#endif
 } // three_way_swap_block_positive
 
 

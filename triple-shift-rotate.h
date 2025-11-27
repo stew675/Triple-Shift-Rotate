@@ -115,11 +115,10 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 {
 	size_t	na = pb - pa, nb = pe - pb;
 
-	int32_t	buf[SMALL_BUF_SIZE];
+	int32_t	buf[SMALL_BUF_SIZE], *pc = pa + nb;
 
 	if (na < nb) {
 		size_t	nc = nb - na;
-		int32_t	*pc = pb + nc;
 
 		// Steps are:
 		// 1.  Copy out the overlapping amount from the end of B into the buffer
@@ -127,12 +126,16 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 		// 3.  Swap A with B
 		// 4.  Copy the buffer back to the end of where B is now
 		memcpy(buf, pe - nc, nc * sizeof(*pa));
+#if 1
+		for (int32_t *ta = pb, *tb = pe - nc, *tc = pe; ta > pa; *--tc = *--ta, *ta = *--tb);
+#else
+		// Remember pc is larger than pb here
 		memmove(pc, pb, na * sizeof(*pa));
 		two_way_swap_block(pa, pb, pc);
+#endif
 		memcpy(pb, buf, nc * sizeof(*pa));
 	} else {
 		size_t	nc = na - nb;
-		int32_t	*pc = pb - nc;
 
 		// Steps are:
 		// 1.  Copy out the overlapping amount from the end of A into the buffer
@@ -140,8 +143,13 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 		// 3.  Swap A with B
 		// 4.  Copy the buffer back to the end of where A now is
 		memcpy(buf, pc, nc * sizeof(*pa));
+#if 1
+		for (int32_t *ta = pa, *tb = pc, *tc = pb; tc < pe; *tb++ = *ta, *ta++ = *tc++);
+#else
+		// Remember pc is less than pb here
 		memmove(pc, pb, nb * sizeof(*pa));
 		two_way_swap_block(pa, pc, pc);
+#endif
 		memcpy(pe - nc, buf, nc * sizeof(*pa));
 	}
 } // rotate_overlap
@@ -150,16 +158,7 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 static void
 reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 {
-#if 1
 	for (int32_t t; pa < --pe; t = *pe, *pe = *pa, *pa++ = t);
-#else
-	pe--;
-	while (pa < --pe) {
-		int32_t	t = *pe;
-		*pe = *pa;
-		*pa++ = t;
-	}
-#endif
 } // reverse_block
 
 
@@ -177,7 +176,7 @@ reverse_and_shift(int32_t *pa, int32_t *pc, size_t na)
 		*pb-- = *pc;
 		*pc++ = t;
 	}
-	// Handle straggler case
+	// Handle single straggler corner case
 	if (pa == pb) {
 		t = *pa;
 		*pa = *pc;

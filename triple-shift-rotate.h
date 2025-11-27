@@ -114,43 +114,29 @@ static void
 rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 {
 	size_t	na = pb - pa, nb = pe - pb;
+	size_t	nc = (na < nb) ? (nb - na) : (na - nb);
+	int32_t	buf[SMALL_BUF_SIZE], *pc = pa + nb, *pd = pe - nc;
 
-	int32_t	buf[SMALL_BUF_SIZE], *pc = pa + nb;
+	assert(nc <= SMALL_BUF_SIZE);
 
 	if (na < nb) {
-		size_t	nc = nb - na;
-
 		// Steps are:
 		// 1.  Copy out the overlapping amount from the end of B into the buffer
-		// 2.  memmove() B over to the end of the array
-		// 3.  Swap A with B
-		// 4.  Copy the buffer back to the end of where B is now
-		memcpy(buf, pe - nc, nc * sizeof(*pa));
-#if 1
-		for (int32_t *ta = pb, *tb = pe - nc, *tc = pe; ta > pa; *--tc = *--ta, *ta = *--tb);
-#else
-		// Remember pc is larger than pb here
-		memmove(pc, pb, na * sizeof(*pa));
-		two_way_swap_block(pa, pb, pc);
-#endif
+		// 2.  Swap A with B, while moving B over to the end of the array
+		// 3.  Copy the buffer back to the end of where B is now
+		memcpy(buf, pd, nc * sizeof(*pa));
+		for (int32_t *ta = pb, *tb = pd, *tc = pe; ta > pa; *--tc = *--ta, *ta = *--tb);
+//		for (pc = pb; pc > pa; *--pe = *--pc, *pc = *--pd);
 		memcpy(pb, buf, nc * sizeof(*pa));
 	} else {
-		size_t	nc = na - nb;
-
 		// Steps are:
 		// 1.  Copy out the overlapping amount from the end of A into the buffer
-		// 2.  memmove() B over to the end of A, where A is reduced by the overlap
-		// 3.  Swap A with B
-		// 4.  Copy the buffer back to the end of where A now is
+		// 2.  Swap non-overlapping portion of A with B, and move B back to PC
+		// 3.  Copy the buffer back to the end of where A now is
 		memcpy(buf, pc, nc * sizeof(*pa));
-#if 1
 		for (int32_t *ta = pa, *tb = pc, *tc = pb; tc < pe; *tb++ = *ta, *ta++ = *tc++);
-#else
-		// Remember pc is less than pb here
-		memmove(pc, pb, nb * sizeof(*pa));
-		two_way_swap_block(pa, pc, pc);
-#endif
-		memcpy(pe - nc, buf, nc * sizeof(*pa));
+//		for (pc = pc; pc < pd; *pc++ = *pa, *pa++ = *pb++);
+		memcpy(pd, buf, nc * sizeof(*pa));
 	}
 } // rotate_overlap
 

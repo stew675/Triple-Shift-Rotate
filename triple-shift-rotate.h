@@ -242,6 +242,22 @@ three_way_swap_block_negative(int32_t * restrict pa, int32_t * restrict pe,
 } // three_way_swap_block_negative
 
 
+// PA points to end of A block without the overlapping region, PO points to
+// the end of the overlapping region, and PB points to the end of the B block
+// no is the number of items in the overlapping region
+static int32_t *
+ring_exchange_negative(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict pb, size_t no)
+{
+	int32_t	*stop = pa;
+
+	for ( ; (pb - po) > no; pa -= no, pb -= no)
+		three_way_swap_block_negative(po, stop, pa, pb);
+
+	three_way_swap_block_negative(pb, po, po, pa);
+	return po - (pb - po);
+} // ring_exchange_negative
+
+
 // When given 3 blocks of equal size, everything in B goes to A, everything
 // in C goes to B, and everything in A goes to C.
 static void
@@ -250,6 +266,23 @@ three_way_swap_block_positive(int32_t * restrict pa, int32_t * restrict pe,
 {
 	for (int32_t t; pa < pe; t = *pa, *pa++ = *pb, *pb++ = *pc, *pc++ = t);
 } // three_way_swap_block_positive
+
+
+// PA points to the start of the A block, PO points to the start of the overlapping
+// region, and PB points to the start of the B block, without the overlapping region
+// no is the number of items in the overlapping region
+static int32_t *
+ring_exchange_positive(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict pb, size_t no)
+{
+	int32_t	*stop = pb;
+
+	for ( ; (po - pa) > no; pa += no, pb += no)
+		three_way_swap_block_positive(po, stop, pb, pa);
+
+	three_way_swap_block_positive(pa, po, po, pb);
+
+	return po + (po - pa);
+} // ring_exchange_positive
 
 
 static void
@@ -266,6 +299,12 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			if (no <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
 
+#if 1
+			pe -= na;
+			int32_t *po = ring_exchange_positive(pa, pb, pe, no);
+			pa = pb;
+			pb = po;
+#else
 			// Temporary A Block, B Block and Stop Pointers
 			pe -= na;
 			int32_t	*ta = pa, *tb = pe, *stop = pe;
@@ -277,6 +316,7 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 
 			pa = pb;
 			pb += (pb - ta);
+#endif
 		} else if (na == nb) {
 			return two_way_swap_block(pa, pb, pb);
 		} else if (nb == 0) {
@@ -291,6 +331,12 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			if (no <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
 
+#if 1
+			pa += nb;
+			int32_t *po = ring_exchange_negative(pa, pb, pe, no);
+			pe = pb;
+			pb = po;
+#else
 			// Temporary A Block, B Block and Stop Pointers
 			pa += nb;
 			int32_t	*ta = pa, *tb = pe, *stop = pa;
@@ -302,6 +348,7 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 
 			pe = pb;
 			pb -= (tb - pb);
+#endif
 		}
 	}
 } // triple_shift_rotate_v2

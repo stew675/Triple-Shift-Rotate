@@ -298,12 +298,17 @@ ring_rotate_negative(int32_t * restrict pa, int32_t * restrict po, int32_t * res
 
 
 // Treats the operational space as 3 blocks, A, O, and B, where A and B are of
-// equal size, and O is the overlapping section of the larger block.  When
-// viewed in this manner, it becomes clear that the total rotation is just a
-// rotate left, or right, of the blocks.  Triple Shift V2 uses the O block as
-// a ring/circular buffer in order perform the "rotate by one" operation.  This
-// algorithm will generally always swap the two blocks in the least possible
-// number of item-wise swap operations
+// equal size, and O is the overlapping section of the larger block.
+//
+// When viewed in this manner, it clearly seen that the total rotation operation
+// is just a rotate left, or right, of the three blocks individually, depending
+// upon which is the smaller block initially.
+//
+// Triple Shift V2 uses the O block as a ring/circular buffer in order perform
+// the "rotate by one" operation.
+//
+// This algorithm will generally always rotate the two starting blocks in the
+// least possible number of item-wise swap operations.
 static void
 triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 {

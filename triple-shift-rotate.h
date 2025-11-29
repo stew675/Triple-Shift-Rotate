@@ -78,12 +78,33 @@
 #define SMALL_BUF_SIZE 1
 #endif
 
-// Function prototypes
-static void two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe, int32_t * restrict pb);
+//------------------------------------------------------------------------------
+//                  Generic Swap Block Function
+//------------------------------------------------------------------------------
+
+// Swaps two blocks of equal size.  Contents of PA are swapped
+// with the contents of PB. Terminates when PA reaches PE
+static void
+two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe,
+                   int32_t * restrict pb)
+{
+	for (int32_t t; pa < pe; t = *pa, *pa++ = *pb, *pb++ = t);
+} // two_way_swap_block
 
 
-// Completely optional function to handle degenerate scenario of rotating a
-// tiny block with a (typically MUCH) larger block
+//------------------------------------------------------------------------------
+//                  Corner-Case Helper Functions
+//------------------------------------------------------------------------------
+
+// rotate_small()
+// Optional function to handle degenerate scenario of rotating a tiny
+// block with a (typically MUCH) larger block.  This scenario is the
+// worst case for most rotation functions due to needing to ripple a
+// small number of bytes across a large memory range.  It is quite a
+// deal faster to copy that small number of bytes to a temporary space
+// and memmove() the larger block down into position, and then copy
+// the smaller set of bytes back into position.
+// NOTICE: This is not a general purpose rotation function!
 static void
 rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
 {
@@ -108,8 +129,10 @@ rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
 } // rotate_small
 
 
+// rotate_overlap()
 // Uses a limited amount of stack space to rotate two blocks that overlap by
 // only a small amount.  It's basically a special variant of rotate_small()
+// NOTICE: This is not a general purpose rotation function!
 static void
 rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 {
@@ -144,6 +167,10 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 } // rotate_overlap
 
 
+//------------------------------------------------------------------------------
+//                           Half-Reverse Rotate
+//------------------------------------------------------------------------------
+
 static void
 reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 {
@@ -151,6 +178,9 @@ reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 } // reverse_block
 
 
+// When given two blocks, A and B, of equal size, A is swapped with B, but
+// the items of B are reversed in order, while the items of A remain in
+// their original ordering
 static void
 reverse_and_shift(int32_t *pa, int32_t *pc, size_t na)
 {
@@ -174,6 +204,12 @@ reverse_and_shift(int32_t *pa, int32_t *pc, size_t na)
 } // reverse_and_shift
 
 
+// Half-reverse rotate is my take on the traditional triple-reverse rotation
+// algorithm.  Instead of reversing both blocks, it only reverses the larger
+// block. Then the smaller block is swapping with the non-overlapping section
+// of the larger block, but the larger block's section is re-reversed in that
+// step. Finally the overlapping section of the larger block is reversed. It
+// is basically triple-reverse, but reversing just one of the blocks instead
 static void
 half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 {
@@ -223,71 +259,58 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 } // half_reverse_rotate
 
 
-// Swaps PA with PB. Terminates when PA reaches PE
-static void
-two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe,
-                   int32_t * restrict pb)
-{
-	for (int32_t t; pa < pe; t = *pa, *pa++ = *pb, *pb++ = t);
-} // two_way_swap_block
+//------------------------------------------------------------------------------
+//                           Triple Shift Rotate V2
+//------------------------------------------------------------------------------
 
-
-// When given 3 blocks of equal size, everything in B goes to A, everything
-// in C goes to B, and everything in A goes to C.
-static void
-three_way_swap_block_negative(int32_t * restrict pa, int32_t * restrict pe,
-                     int32_t * restrict pb, int32_t * restrict pc)
+// PA points to the start of the A block, PO points to the start of the overlapping
+// region, and PB points to the start of the B block, without the overlapping region
+// no is the number of items in the overlapping region
+static int32_t *
+ring_rotate_positive(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict pb, size_t no)
 {
-	for (int32_t t; pa > pe; t = *--pa, *pa = *--pb, *pb = *--pc, *pc = t);
-} // three_way_swap_block_negative
+	// Here we're doing a left-rotate by one between blocks PA, PO, and PB
+	// but starting from the beginning of each block. PO acts as a ring buffer
+	for (int32_t *stop = pb, *so = po; (so - pa) > no; po = so)
+		for (int32_t t; po < stop; t = *pa, *pa++ = *po, *po++ = *pb, *pb++ = t);
+
+	for (int32_t t, *so = po; pa < so; t = *pa, *pa++ = *po, *po++ = *pb, *pb++ = t);
+
+	return po;
+} // ring_rotate_positive
 
 
 // PA points to end of A block without the overlapping region, PO points to
 // the end of the overlapping region, and PB points to the end of the B block
 // no is the number of items in the overlapping region
 static int32_t *
-ring_exchange_negative(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict pb, size_t no)
+ring_rotate_negative(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict pb, size_t no)
 {
-	for (int32_t *stop = pa; (pb - po) > no; pa -= no, pb -= no)
-		three_way_swap_block_negative(po, stop, pa, pb);
+	// Here we're doing a right-rotate by one between blocks PA, PO, and PB
+	// but starting from the ends of the blocks.  PO acts as a ring buffer
+	for (int32_t *stop = pa, *so = po; (pb - so) > no; po = so)
+		for (int32_t t; po > stop; t = *--pb, *pb = *--po, *po = *--pa, *pa = t);
 
-	three_way_swap_block_negative(pb, po, po, pa);
+	for (int32_t t, *so = po; pb > so; t = *--pb, *pb = *--po, *po = *--pa, *pa = t);
 
-	return po - (pb - po);
-} // ring_exchange_negative
-
-
-// When given 3 blocks of equal size, everything in B goes to A, everything
-// in C goes to B, and everything in A goes to C.
-static void
-three_way_swap_block_positive(int32_t * restrict pa, int32_t * restrict pe,
-                     int32_t * restrict pb, int32_t * restrict pc)
-{
-	for (int32_t t; pa < pe; t = *pa, *pa++ = *pb, *pb++ = *pc, *pc++ = t);
-} // three_way_swap_block_positive
+	return po;
+} // ring_rotate_negative
 
 
-// PA points to the start of the A block, PO points to the start of the overlapping
-// region, and PB points to the start of the B block, without the overlapping region
-// no is the number of items in the overlapping region
-static int32_t *
-ring_exchange_positive(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict pb, size_t no)
-{
-	for (int32_t *stop = pb; (po - pa) > no; pa += no, pb += no)
-		three_way_swap_block_positive(po, stop, pb, pa);
-
-	three_way_swap_block_positive(pa, po, po, pb);
-
-	return po + (po - pa);
-} // ring_exchange_positive
-
-
+// Treats the operational space as 3 blocks, A, O, and B, where A and B are of
+// equal size, and O is the overlapping section of the larger block.  When
+// viewed in this manner, it becomes clear that the total rotation is just a
+// rotate left, or right, of the blocks.  Triple Shift V2 uses the O block as
+// a ring/circular buffer in order perform the "rotate by one" operation.  This
+// algorithm will generally always swap the two blocks in the least possible
+// number of item-wise swap operations
 static void
 triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 {
 	for (int32_t *pb = pa + na, *pe = pb + nb; na; nb = pe - pb, na = pb - pa) {
 		if (na < nb) {
-			size_t	no = nb - na;	// no = number of overlapping items
+			// no = number of overlapping items
+			size_t	no = nb - na;
 
 			if (na <= SMALL_ROTATE_SIZE)
 				return rotate_small(pa, pb, pe);
@@ -295,16 +318,16 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			if (no <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
 
+			pb = ring_rotate_positive(pa, pb, pe - na, no);
 			pe -= na;
-			int32_t *po = ring_exchange_positive(pa, pb, pe, no);
-			pa = pb;
-			pb = po;
+			pa += na;
 		} else if (na == nb) {
 			return two_way_swap_block(pa, pb, pb);
 		} else if (nb == 0) {
 			return;
 		} else {
-			size_t	no = na - nb;	// no = number of overlapping items
+			// no = number of overlapping items
+			size_t	no = na - nb;
 
 			if (nb <= SMALL_ROTATE_SIZE)
 				return rotate_small(pa, pb, pe);
@@ -312,15 +335,32 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			if (no <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
 
+			pb = ring_rotate_negative(pa + nb, pb, pe, no);
+			pe -= nb;
 			pa += nb;
-			int32_t *po = ring_exchange_negative(pa, pb, pe, no);
-			pe = pb;
-			pb = po;
 		}
 	}
 } // triple_shift_rotate_v2
 
 
+//------------------------------------------------------------------------------
+//                          Triple Shift Rotate V1
+//------------------------------------------------------------------------------
+
+// When given 3 blocks of equal size, everything in B goes to A, everything
+// in C goes to B, and everything in A goes to C.
+static void
+three_way_swap_block(int32_t * restrict pa, int32_t * restrict pe,
+                     int32_t * restrict pb, int32_t * restrict pc)
+{
+	for (int32_t t; pa < pe; t = *pa, *pa++ = *pb, *pb++ = *pc, *pc++ = t);
+} // three_way_swap_block
+
+
+// Similar to Triple Shift Rotate V2, except it doesn't use the O block as a
+// ring buffer all of the time.  As a result it has to handle mismatched block
+// sizes in a more direct fashion, with different code-paths depending on the
+// relative sizes at the start of each loop.
 static void
 triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 {
@@ -336,12 +376,12 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 
 			if (nc < na) {
 				// Overflow scenario
-				three_way_swap_block_positive(pb - nc, pb, pb, pe - nc);
+				three_way_swap_block(pb - nc, pb, pb, pe - nc);
 				two_way_swap_block(pa, pb - nc, pb + nc);
 				na -= nc;  pe = pb;  pb -= nc;  nb = nc;
 			} else {
 				// Remainder scenario
-				three_way_swap_block_positive(pa, pb, pb, pe - na);
+				three_way_swap_block(pa, pb, pb, pe - na);
 				pa = pb;  pb += na;  pe -= na;  nb -= (na << 1);
 			}
 		} else if (na == nb) {
@@ -359,13 +399,13 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 
 			if (nc < nb) {
 				// Overflow scenario
-				three_way_swap_block_positive(pb, pb + nc, pb - nc, pa);
+				three_way_swap_block(pb, pb + nc, pb - nc, pa);
 				two_way_swap_block(pb + nc, pe, pa + nc);
 
 				pa = pb;  na = nc;  pb += nc;  nb -= nc;
 			} else {
 				// Remainder scenario
-				three_way_swap_block_positive(pb, pe, pb - nb, pa);
+				three_way_swap_block(pb, pe, pb - nb, pa);
 				pe = pb;  pb -= nb;  pa += nb;  na -= (nb << 1);
 			}
 		}
@@ -373,9 +413,9 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 } // triple_shift_rotate
 
 
-//-----------------------------------------------------------------
-//                        Old Forsort
-//-----------------------------------------------------------------
+//------------------------------------------------------------------------------
+//                               Old Forsort
+//------------------------------------------------------------------------------
 
 // The following is the old block swap algorithm used in earlier
 // versions of Forsort, adapted for use with the benchmark utility
@@ -406,9 +446,9 @@ old_forsort_rotate(int32_t *pa, size_t na, size_t nb)
 } // old_forsort_rotate
 
 
-//-----------------------------------------------------------------
-//                     #define cleanup
-//-----------------------------------------------------------------
+//------------------------------------------------------------------------------
+//                              #define cleanup
+//------------------------------------------------------------------------------
 
 #undef SMALL_ROTATE_SIZE
 #undef SMALL_BUF_SIZE

@@ -263,6 +263,18 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 //                           Triple Shift Rotate V2
 //------------------------------------------------------------------------------
 
+static void
+ring_positive(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict stop, int32_t * restrict pb)
+{
+	for (int32_t t; po < stop; t = *pa, *pa++ = *po, *po++ = *pb, *pb++ = t);
+}
+
+static void
+ring_negative(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict stop, int32_t * restrict pb)
+{
+	for (int32_t t; po > stop; t = *--pb, *pb = *--po, *po = *--pa, *pa = t);
+}
+
 // PA points to the start of the A block, PO points to the start of the overlapping
 // region, and PB points to the start of the B block, without the overlapping region
 // no is the number of items in the overlapping region
@@ -278,7 +290,6 @@ ring_rotate_positive(int32_t * restrict pa, int32_t * restrict po, int32_t * res
 
 	return po;
 } // ring_rotate_positive
-
 
 // PA points to end of A block without the overlapping region, PO points to
 // the end of the overlapping region, and PB points to the end of the B block
@@ -322,10 +333,22 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 
 			if (no <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
+#if 1
+			while (na > no) {
+				ring_positive(pa, pb, pb + no, pe - na);
+				pa += no;
+				na -= no;
+			}
 
+			ring_positive(pa, pb, pb + na, pe - na);
+			pe = pb + no;
+			pa = pb;
+			pb += na;
+#else
 			pb = ring_rotate_positive(pa, pb, pe - na, no);
 			pe -= na;
 			pa += na;
+#endif
 		} else if (na == nb) {
 			return two_way_swap_block(pa, pb, pb);
 		} else if (nb == 0) {
@@ -340,9 +363,22 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			if (no <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
 
+#if 1
+			while (nb > no) {
+				ring_negative(pa + nb, pb, pb - no, pe);
+				pe -= no;
+				nb -= no;
+			}
+
+			ring_negative(pa + nb, pb, pb - nb, pe);
+			pe = pb;
+			pa = pb - no;
+			pb = pe - nb;
+#else
 			pb = ring_rotate_negative(pa + nb, pb, pe, no);
 			pe -= nb;
 			pa += nb;
+#endif
 		}
 	}
 } // triple_shift_rotate_v2

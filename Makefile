@@ -21,9 +21,10 @@ BIN=rotate
 # COMPILE TIME OPTION FLAGS
 ######################################################################################
 
-CC= gcc
-CC_OPT_FLAGS= -O3 -mtune=native -Wno-restrict -Wno-unused-function
-LD_OPT_FLAGS= -O3 -mtune=native
+#CC= gcc
+CC= clang
+CC_OPT_FLAGS= -O2 -Wno-restrict -Wno-unused-function
+LD_OPT_FLAGS= -O2 
 DEBUG_FLAGS= -Wall # -g -pg --profile -fprofile-arcs -ftest-coverage
 LIBS=
 

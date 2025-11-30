@@ -132,6 +132,30 @@ rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
 } // rotate_small
 
 
+// The following bridge functions are inspired by ideas from
+// Igor's work here: https://github.com/scandum/rotate
+static void
+bridge_down(int32_t * restrict pa, int32_t * restrict pb,
+            int32_t * restrict pd, int32_t * restrict pe)
+{
+	assert(pb > pa);
+
+	while (pb != pa)
+		*--pe = *--pb, *pb = *--pd;
+} // bridge_down
+
+
+static void
+bridge_up(int32_t * restrict pa, int32_t * restrict pb,
+          int32_t * restrict pc, int32_t * restrict pd)
+{
+	assert(pc < pd);
+
+	while (pc != pd)
+		*pc++ = *pa, *pa++ = *pb++;
+} // bridge_down
+
+
 // rotate_overlap()
 // Uses a limited amount of stack space to rotate two blocks that overlap by
 // only a small amount.  It's basically a special variant of rotate_small()
@@ -149,10 +173,11 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 		// 2.  Swap A with B, while moving B over to the end of the array
 		// 3.  Copy the buffer back to the end of where B is now
 		size_t	nc = nb - na;
-		int32_t	*pc = pb, *pd = pe - nc;
+		int32_t	*pd = pe - nc;
 
 		memcpy(buf, pd, nc * sizeof(*pa));
-		for ( ; pc > pa; *--pe = *--pc, *pc = *--pd);
+		bridge_down(pa, pb, pd, pe);
+//		for (int32_t *pc = pb; pc > pa; *--pe = *--pc, *pc = *--pd);
 		memcpy(pb, buf, nc * sizeof(*pa));
 	} else {
 		// Steps are:
@@ -163,7 +188,8 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 		int32_t	*pc = pa + nb, *pd = pe - nc;
 
 		memcpy(buf, pc, nc * sizeof(*pa));
-		for ( ; pc < pd; *pc++ = *pa, *pa++ = *pb++);
+		bridge_up(pa, pb, pc, pd);
+//		for ( ; pc < pd; *pc++ = *pa, *pa++ = *pb++);
 		memcpy(pd, buf, nc * sizeof(*pa));
 	}
 } // rotate_overlap
@@ -176,7 +202,16 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 static void
 reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 {
+#if 1
+	size_t num = (pe - pa) >> 1;
+	int32_t	*stop = pa + num;
+	int32_t	t;
+
+	while (pa != stop)
+		t = *pa, *pa++ = *--pe, *pe = t;
+#else
 	for (int32_t t; pa < --pe; t = *pe, *pe = *pa, *pa++ = t);
+#endif
 } // reverse_block
 
 
@@ -184,27 +219,30 @@ reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 // the items of B are reversed in order, while the items of A remain in
 // their original ordering
 static void
-reverse_and_shift(int32_t *pa, int32_t *pc, size_t na)
+reverse_and_shift(int32_t * restrict pa, int32_t * restrict pc, size_t na)
 {
-	int32_t *pb = pa + (na - 1);
-	int32_t *pd = pc + (na - 1);
+	int32_t	* restrict stop = pa + (na >> 1);
+	int32_t * restrict pb = pa + na;
+	int32_t * restrict pd = pc + na;
 	int32_t	t;
 
-	while (pa < pb) {
-		t = *pa;
-		*pa++ = *pd;
-		*pd-- = *pb;
-		*pb-- = *pc;
-		*pc++ = t;
-	}
+	while (pa != stop)
+		t = *pa, *pa++ = *--pd, *pd = *--pb, *pb = *pc, *pc++ = t;
+
 	// Handle single straggler corner case
-	if (pa == pb) {
-		t = *pa;
-		*pa = *pc;
-		*pc = t;
-	}
+	if (pa == pb)
+		t = *pa, *pa = *pc, *pc = t;
 } // reverse_and_shift
 
+static void
+triple_reverse_rotate(int32_t *pa, size_t na, size_t nb)
+{
+	int32_t	*pb = pa + na, *pe = pb + nb;
+
+	reverse_block(pa, pe);
+	reverse_block(pa, pb);
+	reverse_block(pb, pe);
+} // triple_reverse_rotate
 
 // Half-reverse rotate is my take on the traditional triple-reverse rotation
 // algorithm.  Instead of reversing both blocks, it only reverses the larger

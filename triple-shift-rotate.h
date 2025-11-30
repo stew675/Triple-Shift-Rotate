@@ -443,12 +443,11 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 static void
 old_forsort_rotate(int32_t *pa, size_t na, size_t nb)
 {
-	int32_t	*pb = pa + na, *pe = pb + nb;
+	int32_t	*pb = pa + na;
 
 	while (na && nb) {
 		if (na < nb) {
 			two_way_swap_block(pa, pa + nb, na);
-			pe -= na;
 			nb -= na;
 		} else {
 			two_way_swap_block(pa, pb, nb);

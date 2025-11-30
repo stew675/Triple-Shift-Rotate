@@ -266,35 +266,13 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 static inline void
 ring_positive(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict stop, int32_t * restrict pb)
 {
-	int32_t	t;
-
-	while (po < stop) {
-		t = *pa;
-		*pa = *po;
-		*po = *pb;
-		*pb = t;
-		pa++;
-		po++;
-		pb++;
-	}
-//	for (int32_t t; po < stop; t = *pa, *pa++ = *po, *po++ = *pb, *pb++ = t);
+	for (int32_t t; po < stop; t = *pa, *pa++ = *po, *po++ = *pb, *pb++ = t);
 }
 
 static inline void
 ring_negative(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict stop, int32_t * restrict pb)
 {
-	int32_t	t;
-
-	while (po > stop) {
-		pa--;
-		po--;
-		pb--;
-		t = *pb;
-		*pb = *po;
-		*po = *pa;
-		*pa = t;
-	}
-//	for (int32_t t; po > stop; t = *--pb, *pb = *--po, *po = *--pa, *pa = t);
+	for (int32_t t; po > stop; t = *--pb, *pb = *--po, *po = *--pa, *pa = t);
 }
 
 // Treats the operational space as 3 blocks, A, O, and B, where A and B are of
@@ -323,16 +301,15 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			if (no <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
 
-			while (na > no) {
+			// Collapse the operational space by (2 * no) every loop
+			for ( ; na > no; pa += no, na -= no)
 				ring_positive(pa, pb, pb + no, pe - na);
-				pa += no;
-				na -= no;
-			}
 
+			// Perform final ring-rotation with a partial ring buffer
 			ring_positive(pa, pb, pb + na, pe - na);
-			pe = pb + no;
-			pa = pb;
-			pb += na;
+
+			// Update pointers to reflect ring buffer block split
+			pa = pb,  pe = pb + no,  pb += na;
 		} else if (na == nb) {
 			return two_way_swap_block(pa, pb, pb);
 		} else if (nb == 0) {
@@ -347,16 +324,15 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			if (no <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
 
-			while (nb > no) {
+			// Collapse the operational space by (2 * no) every loop
+			for ( ; nb > no; pe -= no, nb -= no)
 				ring_negative(pa + nb, pb, pb - no, pe);
-				pe -= no;
-				nb -= no;
-			}
 
+			// Perform final ring-rotation with a partial ring buffer
 			ring_negative(pa + nb, pb, pb - nb, pe);
-			pe = pb;
-			pa = pb - no;
-			pb = pe - nb;
+
+			// Update pointers to reflect ring buffer block split
+			pe = pb,  pa = pb - no,  pb -= nb;
 		}
 	}
 } // triple_shift_rotate_v2

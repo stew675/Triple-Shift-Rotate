@@ -23,7 +23,7 @@ BIN=rotate
 
 CC= gcc
 #CC= clang
-CC_OPT_FLAGS= -O3 -Wno-restrict -Wno-unused-function
+CC_OPT_FLAGS= -O3 -Wno-restrict -Wno-unused-function -falign-loops=32 -falign-functions=32
 LD_OPT_FLAGS= -O3 
 DEBUG_FLAGS= -Wall # -g -pg --profile -fprofile-arcs -ftest-coverage
 LIBS=

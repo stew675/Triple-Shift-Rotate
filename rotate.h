@@ -225,6 +225,41 @@ void bridge_rotation(int *array, size_t left, size_t right)
 	free(swap);
 }
 
+static void
+reverse_both(int * restrict pa, int * restrict pb, int * restrict pc, int * restrict pd, size_t num)
+{
+	int	*stop = pa + num, t;
+
+	while (pa != stop)
+		t = *--pb, *pb = *pa, *pa++ = *pc, *pc++ = *--pd, *pd = t;
+}
+
+static void
+reverse_shift_up(int * restrict pa, int * restrict pc, int * restrict pd, size_t num)
+{
+	int	*stop = pa + num, t;
+
+	while (pa != stop)
+		t = *pc, *pc++ = *--pd, *pd = *pa, *pa++ = t;
+}
+
+static void
+reverse_shift_down(int * restrict pa, int * restrict pb, int * restrict pd, size_t num)
+{
+	int	*stop = pa + num, t;
+
+	while (pa != stop)
+		t = *--pb, *pb = *pa, *pa++ = *--pd, *pd = t;
+}
+
+static void reverse_it(int * restrict pa, int * restrict pb, size_t num)
+{
+	int	*stop = pa + num, t;
+
+	while (pa != stop)
+		t = *pa, *pa++ = *--pb, *pb = t;
+}
+
 // 2021 - Conjoined Triple Reversal rotation by Igor van den Hoven
 
 void contrev_rotation(int *array, size_t left, size_t right)
@@ -239,6 +274,18 @@ void contrev_rotation(int *array, size_t left, size_t right)
 
 	if (left > right)
 	{
+#if 1
+		loop = right / 2;
+		reverse_both(pta, ptb, ptc, ptd, loop);
+		pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
+
+		loop = (ptb - pta) / 2;
+		reverse_shift_down(pta, ptb, ptd, loop);
+		pta += loop, ptb -= loop, ptd -= loop;
+
+		loop = (ptd - pta) / 2;
+		reverse_it(pta, ptb, loop);
+#else
 		loop = right / 2;
 
 		while (loop--)
@@ -252,15 +299,29 @@ void contrev_rotation(int *array, size_t left, size_t right)
 		{
 			swap = *--ptb; *ptb = *pta; *pta++ = *--ptd; *ptd = swap;
 		}
+
 		loop = (ptd - pta) / 2;
 
 		while (loop--)
 		{
 			swap = *pta; *pta++ = *--ptd; *ptd = swap;
 		}
+#endif
 	}
 	else if (left < right)
 	{
+#if 1
+		loop = left / 2;
+		reverse_both(pta, ptb, ptc, ptd, loop);
+		pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
+
+		loop = (ptd - ptc) / 2;
+		reverse_shift_up(pta, ptc, ptd, loop);
+		pta += loop, ptc += loop, ptd -= loop;
+
+		loop = (ptd - pta) / 2;
+		reverse_it(pta, ptb, loop);
+#else
 		loop = left / 2;
 
 		while (loop--)
@@ -280,6 +341,7 @@ void contrev_rotation(int *array, size_t left, size_t right)
 		{
 			swap = *pta; *pta++ = *--ptd; *ptd = swap;
 		}
+#endif
 	}
 	else
 	{

@@ -358,10 +358,13 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 // When given 3 blocks of equal size, everything in B goes to A, everything
 // in C goes to B, and everything in A goes to C.
 static void
-three_way_swap_block(int32_t * restrict pa, int32_t * restrict pe,
-                     int32_t * restrict pb, int32_t * restrict pc)
+three_way_swap_block(int32_t * restrict pa, int32_t * restrict pb,
+                     int32_t * restrict pc, size_t num)
 {
-	for (int32_t t; pa < pe; t = *pa, *pa++ = *pb, *pb++ = *pc, *pc++ = t);
+	int32_t	*stop = pb + num, t;
+
+	while (pb != stop)
+		t = *pa, *pa++ = *pb, *pb++ = *pc, *pc++ = t;
 } // three_way_swap_block
 
 
@@ -384,12 +387,12 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 
 			if (nc < na) {
 				// Overflow scenario
-				three_way_swap_block(pb - nc, pb, pb, pe - nc);
+				three_way_swap_block(pb - nc, pb, pe - nc, nc);
 				two_way_swap_block(pa, pb - nc, pb + nc);
 				na -= nc;  pe = pb;  pb -= nc;  nb = nc;
 			} else {
 				// Remainder scenario
-				three_way_swap_block(pa, pb, pb, pe - na);
+				three_way_swap_block(pa, pb, pe - na, na);
 				pa = pb;  pb += na;  pe -= na;  nb -= (na << 1);
 			}
 		} else if (na == nb) {
@@ -407,13 +410,13 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 
 			if (nc < nb) {
 				// Overflow scenario
-				three_way_swap_block(pb, pb + nc, pb - nc, pa);
+				three_way_swap_block(pb, pb - nc, pa, nc);
 				two_way_swap_block(pb + nc, pe, pa + nc);
 
 				pa = pb;  na = nc;  pb += nc;  nb -= nc;
 			} else {
 				// Remainder scenario
-				three_way_swap_block(pb, pe, pb - nb, pa);
+				three_way_swap_block(pb, pb - nb, pa, nb);
 				pe = pb;  pb -= nb;  pa += nb;  na -= (nb << 1);
 			}
 		}

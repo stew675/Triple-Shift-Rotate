@@ -85,10 +85,12 @@
 // Swaps two blocks of equal size.  Contents of PA are swapped
 // with the contents of PB. Terminates when PA reaches PE
 static void
-two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe,
-                   int32_t * restrict pb)
+two_way_swap_block(int32_t * restrict pa, int32_t * restrict pb, size_t num)
 {
-	for (int32_t t; pa < pe; t = *pa, *pa++ = *pb, *pb++ = t);
+	int32_t	*stop = pb + num, t;
+
+	while (pb != stop)
+		t = *pa, *pa++ = *pb, *pb++ = t;
 } // two_way_swap_block
 
 
@@ -235,7 +237,7 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 				reverse_and_shift(pa, pc, na);
 			}
 		} else if (na == nb) {
-			two_way_swap_block(pb, pe, pa);
+			two_way_swap_block(pa, pb, na);
 		} else {
 			if (nb <= SMALL_ROTATE_SIZE)
 				return rotate_small(pa, pb, pe);
@@ -324,7 +326,7 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			// Update pointers to reflect ring buffer block split
 			pa = pb,  pe = pb + no,  pb += na;
 		} else if (na == nb) {
-			return two_way_swap_block(pa, pb, pb);
+			return two_way_swap_block(pa, pb, na);
 		} else if (nb == 0) {
 			return;
 		} else {
@@ -388,7 +390,7 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 			if (nc < na) {
 				// Overflow scenario
 				three_way_swap_block(pb - nc, pb, pe - nc, nc);
-				two_way_swap_block(pa, pb - nc, pb + nc);
+				two_way_swap_block(pa, pb + nc, na - nc);
 				na -= nc;  pe = pb;  pb -= nc;  nb = nc;
 			} else {
 				// Remainder scenario
@@ -396,7 +398,7 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 				pa = pb;  pb += na;  pe -= na;  nb -= (na << 1);
 			}
 		} else if (na == nb) {
-			return two_way_swap_block(pa, pb, pb);
+			return two_way_swap_block(pa, pb, na);
 		} else if (nb == 0) {
 			return;
 		} else {
@@ -411,7 +413,7 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 			if (nc < nb) {
 				// Overflow scenario
 				three_way_swap_block(pb, pb - nc, pa, nc);
-				two_way_swap_block(pb + nc, pe, pa + nc);
+				two_way_swap_block(pb + nc, pa + nc, nb - nc);
 
 				pa = pb;  na = nc;  pb += nc;  nb -= nc;
 			} else {
@@ -445,11 +447,11 @@ old_forsort_rotate(int32_t *pa, size_t na, size_t nb)
 
 	while (na && nb) {
 		if (na < nb) {
-			two_way_swap_block(pa + nb, pe, pa);
+			two_way_swap_block(pa, pa + nb, na);
 			pe -= na;
 			nb -= na;
 		} else {
-			two_way_swap_block(pb, pe, pa);
+			two_way_swap_block(pa, pb, nb);
 			pa += nb;
 			na -= nb;
 		}

@@ -225,6 +225,9 @@ void bridge_rotation(int *array, size_t left, size_t right)
 	free(swap);
 }
 
+#define I_WANT_IT_TO_BE_FAST
+
+#ifdef I_WANT_IT_TO_BE_FAST
 static void
 reverse_both(int * restrict pa, int * restrict pb, int * restrict pc, int * restrict pd, size_t num)
 {
@@ -260,11 +263,20 @@ static void reverse_it(int * restrict pa, int * restrict pb, size_t num)
 		t = *pa, *pa++ = *--pb, *pb = t;
 }
 
+static void swap_it(int * restrict pa, int * restrict pb, size_t num)
+{
+	int	*stop = pa + num, t;
+
+	while (pa != stop)
+		t = *pa, *pa++ = *pb, *pb++ = t;
+}
+#endif
+
 // 2021 - Conjoined Triple Reversal rotation by Igor van den Hoven
 
 void contrev_rotation(int *array, size_t left, size_t right)
 {
-	int *pta, *ptb, *ptc, *ptd, swap;
+	int *pta, *ptb, *ptc, *ptd;
 	size_t loop;
 
 	pta = array;
@@ -274,7 +286,7 @@ void contrev_rotation(int *array, size_t left, size_t right)
 
 	if (left > right)
 	{
-#if 1
+#ifdef I_WANT_IT_TO_BE_FAST
 		loop = right / 2;
 		reverse_both(pta, ptb, ptc, ptd, loop);
 		pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
@@ -284,8 +296,10 @@ void contrev_rotation(int *array, size_t left, size_t right)
 		pta += loop, ptb -= loop, ptd -= loop;
 
 		loop = (ptd - pta) / 2;
-		reverse_it(pta, ptb, loop);
+		reverse_it(pta, ptd, loop);
 #else
+		int swap;
+
 		loop = right / 2;
 
 		while (loop--)
@@ -310,7 +324,7 @@ void contrev_rotation(int *array, size_t left, size_t right)
 	}
 	else if (left < right)
 	{
-#if 1
+#ifdef I_WANT_IT_TO_BE_FAST
 		loop = left / 2;
 		reverse_both(pta, ptb, ptc, ptd, loop);
 		pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
@@ -320,8 +334,10 @@ void contrev_rotation(int *array, size_t left, size_t right)
 		pta += loop, ptc += loop, ptd -= loop;
 
 		loop = (ptd - pta) / 2;
-		reverse_it(pta, ptb, loop);
+		reverse_it(pta, ptd, loop);
 #else
+		int swap;
+
 		loop = left / 2;
 
 		while (loop--)
@@ -345,12 +361,16 @@ void contrev_rotation(int *array, size_t left, size_t right)
 	}
 	else
 	{
+#ifdef I_WANT_IT_TO_BE_FAST
+		swap_it(pta, ptb, left);
+#else
 		loop = left;
 
 		while (loop--)
 		{
-			swap = *pta; *pta++ = *ptb; *ptb++ = swap;
+			int swap = *pta; *pta++ = *ptb; *ptb++ = swap;
 		}
+#endif
 	}
 }
 
@@ -395,7 +415,18 @@ void trinity_rotation(int *array, size_t left, size_t right)
 			{
 				ptc = ptb;
 				ptd = ptc + right;
+#ifdef I_WANT_IT_TO_BE_FAST
+				loop = left / 2;
+				reverse_both(pta, ptb, ptc, ptd, loop);
+				pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
 
+				loop = (ptd - ptc) / 2;
+				reverse_shift_up(pta, ptc, ptd, loop);
+				pta += loop, ptc += loop, ptd -= loop;
+
+				loop = (ptd - pta) / 2;
+				reverse_it(pta, ptd, loop);
+#else
 				loop = left / 2;
 
 				while (loop--)
@@ -416,6 +447,7 @@ void trinity_rotation(int *array, size_t left, size_t right)
 				{
 					*swap = *pta; *pta++ = *--ptd; *ptd = *swap;
 				}
+#endif
 			}
 		}
 	}
@@ -431,7 +463,6 @@ void trinity_rotation(int *array, size_t left, size_t right)
 		{
 			pta = array;
 			ptb = pta + left;
-
 			loop = left - right;
 
 			if (loop <= MAX_AUX && loop > 3)
@@ -451,7 +482,18 @@ void trinity_rotation(int *array, size_t left, size_t right)
 			{
 				ptc = ptb;
 				ptd = ptc + right;
+#ifdef I_WANT_IT_TO_BE_FAST
+				loop = right / 2;
+				reverse_both(pta, ptb, ptc, ptd, loop);
+				pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
 
+				loop = (ptb - pta) / 2;
+				reverse_shift_down(pta, ptb, ptd, loop);
+				pta += loop, ptb -= loop, ptd -= loop;
+
+				loop = (ptd - pta) / 2;
+				reverse_it(pta, ptd, loop);
+#else
 				loop = right / 2;
 
 				while (loop--)
@@ -472,6 +514,7 @@ void trinity_rotation(int *array, size_t left, size_t right)
 				{
 					*swap = *pta; *pta++ = *--ptd; *ptd = *swap;
 				}
+#endif
 			}
 		}
 	}
@@ -479,15 +522,19 @@ void trinity_rotation(int *array, size_t left, size_t right)
 	{
 		pta = array;
 		ptb = pta + left;
-
+#ifdef I_WANT_IT_TO_BE_FAST
+		swap_it(pta, ptb, left);
+#else
 		while (left--)
 		{
 			*swap = *pta; *pta++ = *ptb; *ptb++ = *swap;
 		}
+#endif
 	}
 }
 
 #undef MAX_AUX
+#undef I_WANT_IT_TO_BE_FAST
 
 // 1981 - Gries-Mills rotation by David Gries and Harlan Mills
 
@@ -736,5 +783,6 @@ void juggling_rotation(int *array, size_t left, size_t right)
 		*pta = swap;
 	}
 }
+
 
 #endif

@@ -263,50 +263,39 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 //                           Triple Shift Rotate V2
 //------------------------------------------------------------------------------
 
-static void
+static inline void
 ring_positive(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict stop, int32_t * restrict pb)
 {
-	for (int32_t t; po < stop; t = *pa, *pa++ = *po, *po++ = *pb, *pb++ = t);
+	int32_t	t;
+
+	while (po < stop) {
+		t = *pa;
+		*pa = *po;
+		*po = *pb;
+		*pb = t;
+		pa++;
+		po++;
+		pb++;
+	}
+//	for (int32_t t; po < stop; t = *pa, *pa++ = *po, *po++ = *pb, *pb++ = t);
 }
 
-static void
+static inline void
 ring_negative(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict stop, int32_t * restrict pb)
 {
-	for (int32_t t; po > stop; t = *--pb, *pb = *--po, *po = *--pa, *pa = t);
+	int32_t	t;
+
+	while (po > stop) {
+		pa--;
+		po--;
+		pb--;
+		t = *pb;
+		*pb = *po;
+		*po = *pa;
+		*pa = t;
+	}
+//	for (int32_t t; po > stop; t = *--pb, *pb = *--po, *po = *--pa, *pa = t);
 }
-
-// PA points to the start of the A block, PO points to the start of the overlapping
-// region, and PB points to the start of the B block, without the overlapping region
-// no is the number of items in the overlapping region
-static int32_t *
-ring_rotate_positive(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict pb, size_t no)
-{
-	// Here we're doing a left-rotate by one between blocks PA, PO, and PB
-	// but starting from the beginning of each block. PO acts as a ring buffer
-	for (int32_t *stop = pb, *so = po; (so - pa) > no; po = so)
-		for (int32_t t; po < stop; t = *pa, *pa++ = *po, *po++ = *pb, *pb++ = t);
-
-	for (int32_t t, *so = po; pa < so; t = *pa, *pa++ = *po, *po++ = *pb, *pb++ = t);
-
-	return po;
-} // ring_rotate_positive
-
-// PA points to end of A block without the overlapping region, PO points to
-// the end of the overlapping region, and PB points to the end of the B block
-// no is the number of items in the overlapping region
-static int32_t *
-ring_rotate_negative(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict pb, size_t no)
-{
-	// Here we're doing a right-rotate by one between blocks PA, PO, and PB
-	// but starting from the ends of the blocks.  PO acts as a ring buffer
-	for (int32_t *stop = pa, *so = po; (pb - so) > no; po = so)
-		for (int32_t t; po > stop; t = *--pb, *pb = *--po, *po = *--pa, *pa = t);
-
-	for (int32_t t, *so = po; pb > so; t = *--pb, *pb = *--po, *po = *--pa, *pa = t);
-
-	return po;
-} // ring_rotate_negative
-
 
 // Treats the operational space as 3 blocks, A, O, and B, where A and B are of
 // equal size, and O is the overlapping section of the larger block.
@@ -333,7 +322,7 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 
 			if (no <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
-#if 1
+
 			while (na > no) {
 				ring_positive(pa, pb, pb + no, pe - na);
 				pa += no;
@@ -344,11 +333,6 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			pe = pb + no;
 			pa = pb;
 			pb += na;
-#else
-			pb = ring_rotate_positive(pa, pb, pe - na, no);
-			pe -= na;
-			pa += na;
-#endif
 		} else if (na == nb) {
 			return two_way_swap_block(pa, pb, pb);
 		} else if (nb == 0) {
@@ -363,7 +347,6 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			if (no <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
 
-#if 1
 			while (nb > no) {
 				ring_negative(pa + nb, pb, pb - no, pe);
 				pe -= no;
@@ -374,11 +357,6 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			pe = pb;
 			pa = pb - no;
 			pb = pe - nb;
-#else
-			pb = ring_rotate_negative(pa + nb, pb, pe, no);
-			pe -= nb;
-			pa += nb;
-#endif
 		}
 	}
 } // triple_shift_rotate_v2

@@ -58,26 +58,34 @@ rotate_function_t rotations[] = {
 	{triple_shift_rotate_v2,  "Triple Shift Rotate V2"},
 //	{auxiliary_rotation,      "Aux Rotation (N/2 Aux)"},
 //	{bridge_rotation,         "Bridge Rotate (N/3 Aux)"},
-	{NULL, "End Of List"}
+	{NULL,                    "End Of List"}
 };
 
 
+// Simple function to safely return an entry from the rotations[] table
 rotate_function_t *
 get_function(int i)
 {
-	for (int j = 0; j < i; j++)
-		if (rotations[j].rotate == NULL)
-			return NULL;
+	if (i < 0)
+		return NULL;
+
+	if (i > (sizeof(rotations) / sizeof(*rotations)))
+		return NULL;
+
 	if (rotations[i].rotate == NULL)
 		return NULL;
+
 	return rotations + i;
 } // get_function 
 
+
+// Feel free to exit this to set whatever sizes you want to test
 size_t	test_steps[] = {10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000};
 //size_t	test_steps[] = {2500, 3750, 5000, 6250, 7500, 8750, 10000, 12500};
 
 #define MAX_TIME	50000000000ULL
 #define	MAX_VALS	2000000
+
 int
 main()
 {
@@ -100,7 +108,7 @@ main()
 
 		printf("\n");
 		printf("=======================================================\n");
-		printf("         NAME                 ITEMS     TIME/ROTATE (s)\n");
+		printf("         NAME                 ITEMS         TIME/ROTATE\n");
 		printf("=======================================================\n");
 
 		for (int fno = 0; ; fno++) {
@@ -122,17 +130,16 @@ main()
 			if (stop < 1)
 				stop = 1;
 
-			//
 			// Let's run this thing!
 			size_t	runs = 0;
 			clock_gettime(CLOCK_MONOTONIC, &start);
 
 			// Very large sets take a long time to do every single
 			// rotation size.  The following starts skipping sizes
-			// for tests over 100,000 element in size
+			// for tests over 100,000 elements in size
 			size_t gap = 1;
-			if (SZ > 100000)
-				gap = (SZ - 1) / 100000;
+			if (SZ > (100 * 1000))
+				gap = (SZ - 1) / (100 * 1000);
 
 			for (size_t j = 0; j < stop; j++) {
 				for (size_t i = 1; i < SZ; i += gap) {

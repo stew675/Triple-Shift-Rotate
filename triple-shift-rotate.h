@@ -102,9 +102,10 @@ two_way_swap_block(int32_t * restrict pa, int32_t * restrict pe,
 // worst case for most rotation functions due to needing to ripple a
 // small number of bytes across a large memory range.  It is quite a
 // deal faster to copy that small number of bytes to a temporary space
-// and memmove() the larger block down into position, and then copy
-// the smaller set of bytes back into position.
-// NOTICE: This is not a general purpose rotation function!
+// and memmove() the larger block into position, and then copy the
+// smaller set of bytes back into the correct position.
+//
+// NOTICE: This is NOT a general purpose rotation function!
 static void
 rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
 {
@@ -132,7 +133,8 @@ rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
 // rotate_overlap()
 // Uses a limited amount of stack space to rotate two blocks that overlap by
 // only a small amount.  It's basically a special variant of rotate_small()
-// NOTICE: This is not a general purpose rotation function!
+//
+// NOTICE: This is NOT a general purpose rotation function!
 static void
 rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 {
@@ -147,7 +149,6 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 		size_t	nc = nb - na;
 		int32_t	*pc = pb, *pd = pe - nc;
 
-		assert(nc <= SMALL_BUF_SIZE);
 		memcpy(buf, pd, nc * sizeof(*pa));
 		for ( ; pc > pa; *--pe = *--pc, *pc = *--pd);
 		memcpy(pb, buf, nc * sizeof(*pa));
@@ -159,7 +160,6 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 		size_t	nc = na - nb;
 		int32_t	*pc = pa + nb, *pd = pe - nc;
 
-		assert(nc <= SMALL_BUF_SIZE);
 		memcpy(buf, pc, nc * sizeof(*pa));
 		for ( ; pc < pd; *pc++ = *pa, *pa++ = *pb++);
 		memcpy(pd, buf, nc * sizeof(*pa));
@@ -206,7 +206,7 @@ reverse_and_shift(int32_t *pa, int32_t *pc, size_t na)
 
 // Half-reverse rotate is my take on the traditional triple-reverse rotation
 // algorithm.  Instead of reversing both blocks, it only reverses the larger
-// block. Then the smaller block is swapping with the non-overlapping section
+// block. Then the smaller block is swapped with the non-overlapping section
 // of the larger block, but the larger block's section is re-reversed in that
 // step. Finally the overlapping section of the larger block is reversed. It
 // is basically triple-reverse, but reversing just one of the blocks instead
@@ -263,20 +263,33 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 //                           Triple Shift Rotate V2
 //------------------------------------------------------------------------------
 
+// Helper function that operates on A, O, and B blocks, where O is treated as a
+// ring buffer.  ring_positive does a left-rotate by 1 of the 3 blocks
 static inline void
-ring_positive(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict stop, int32_t * restrict pb)
+ring_positive(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict pb, size_t num)
 {
-	for (int32_t t; po < stop; t = *pa, *pa++ = *po, *po++ = *pb, *pb++ = t);
-}
+	int32_t	*stop = pb + num, t;
 
+	while (pb != stop)
+		t = *pa, *pa++ = *po, *po++ = *pb, *pb++ = t;
+} // ring_positive
+
+
+// Helper function that operates on A, O, and B blocks, where O is treated as a
+// ring buffer.  ring_negaive does a right-rotate by 1 of the 3 blocks
 static inline void
-ring_negative(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict stop, int32_t * restrict pb)
+ring_negative(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict pb, size_t num)
 {
-	for (int32_t t; po > stop; t = *--pb, *pb = *--po, *po = *--pa, *pa = t);
-}
+	int32_t	*stop = pb - num, t;
+
+	while (pb != stop)
+		t = *--pb, *pb = *--po, *po = *--pa, *pa = t;
+} // ring_negative
+
 
 // Treats the operational space as 3 blocks, A, O, and B, where A and B are of
-// equal size, and O is the overlapping section of the larger block.
+// equal size, and O is the overlapping section of the larger block that is
+// located between A and B
 //
 // When viewed in this manner, it clearly seen that the total rotation operation
 // is just a rotate left, or right, of the three blocks individually, depending
@@ -301,12 +314,12 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			if (no <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
 
-			// Collapse the operational space by (2 * no) every loop
+			// Collapses the operational space by (2 * no) every loop
 			for ( ; na > no; pa += no, na -= no)
-				ring_positive(pa, pb, pb + no, pe - na);
+				ring_positive(pa, pb, pe - na, no);
 
 			// Perform final ring-rotation with a partial ring buffer
-			ring_positive(pa, pb, pb + na, pe - na);
+			ring_positive(pa, pb, pe - na, na);
 
 			// Update pointers to reflect ring buffer block split
 			pa = pb,  pe = pb + no,  pb += na;
@@ -324,12 +337,12 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			if (no <= SMALL_ROTATE_SIZE)
 				return rotate_overlap(pa, pb, pe);
 
-			// Collapse the operational space by (2 * no) every loop
+			// Collapses the operational space by (2 * no) every loop
 			for ( ; nb > no; pe -= no, nb -= no)
-				ring_negative(pa + nb, pb, pb - no, pe);
+				ring_negative(pa + nb, pb, pe, no);
 
 			// Perform final ring-rotation with a partial ring buffer
-			ring_negative(pa + nb, pb, pb - nb, pe);
+			ring_negative(pa + nb, pb, pe, nb);
 
 			// Update pointers to reflect ring buffer block split
 			pe = pb,  pa = pb - no,  pb -= nb;

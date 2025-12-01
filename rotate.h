@@ -272,10 +272,142 @@ justswap(int * restrict pa, int * restrict pb, size_t num)
 	while (pa != stop)
 		t = *pa, *pa++ = *pb, *pb++ = t;
 }
-#endif
 
 // 2021 - Conjoined Triple Reversal rotation by Igor van den Hoven
+void contrev_rotation(int *array, size_t left, size_t right)
+{
+	int *pta, *ptb, *ptc, *ptd;
+	size_t loop;
 
+	pta = array;
+	ptb = array + left;
+	ptc = array + left;
+	ptd = array + left + right;
+
+	if (left > right) {
+		loop = right / 2;
+		contrev(pta, ptb, ptc, ptd, loop);
+		pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
+
+		loop = (ptb - pta) / 2;
+		shiftrev_down(pta, ptb, ptd, loop);
+		pta += loop, ptb -= loop, ptd -= loop;
+
+		loop = (ptd - pta) / 2;
+		justrev(pta, ptd, loop);
+	}
+	else if (left < right) {
+		loop = left / 2;
+		contrev(pta, ptb, ptc, ptd, loop);
+		pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
+
+		loop = (ptd - ptc) / 2;
+		shiftrev_up(pta, ptc, ptd, loop);
+		pta += loop, ptc += loop, ptd -= loop;
+
+		loop = (ptd - pta) / 2;
+		justrev(pta, ptd, loop);
+	} else {
+		justswap(pta, ptb, left);
+	}
+}
+
+#define MAX_AUX 8
+
+// 2021 - Trinity rotation by Igor van den Hoven (Conjoined Triple Reversal + Bridge rotation)
+void trinity_rotation(int *array, size_t left, size_t right)
+{
+	int *pta, *ptb, *ptc, *ptd, swap[MAX_AUX];
+	size_t loop;
+
+	if (left < right) {
+		if (left <= MAX_AUX) {
+			memcpy(swap, array, left * sizeof(int));
+			memmove(array, array + left, right * sizeof(int));
+			memcpy(array + right, swap, left * sizeof(int));
+		} else {
+			pta = array;
+			ptb = pta + left;
+
+			loop = right - left;
+
+			if (loop <= MAX_AUX && loop > 3) {
+				ptc = pta + right;
+				ptd = ptc + left;
+
+				memcpy(swap, ptb, loop * sizeof(int));
+
+				while (left--) {
+					*--ptc = *--ptd; *ptd = *--ptb;
+				}
+				memcpy(pta, swap, loop * sizeof(int));
+			} else {
+				ptc = ptb;
+				ptd = ptc + right;
+
+				loop = left / 2;
+				contrev(pta, ptb, ptc, ptd, loop);
+				pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
+
+				loop = (ptd - ptc) / 2;
+				shiftrev_up(pta, ptc, ptd, loop);
+				pta += loop, ptc += loop, ptd -= loop;
+
+				loop = (ptd - pta) / 2;
+				justrev(pta, ptd, loop);
+			}
+		}
+	}
+	else if (right < left) {
+		if (right <= MAX_AUX)
+		{
+			memcpy(swap, array + left, right * sizeof(int));
+			memmove(array + right, array, left * sizeof(int));
+			memcpy(array, swap, right * sizeof(int));
+		} else {
+			pta = array;
+			ptb = pta + left;
+			loop = left - right;
+
+			if (loop <= MAX_AUX && loop > 3) {
+				ptc = pta + right;
+				ptd = ptc + left;
+
+				memcpy(swap, ptc, loop * sizeof(int));
+
+				while (right--) {
+					*ptc++ = *pta; *pta++ = *ptb++;
+				}
+				memcpy(ptd - loop, swap, loop * sizeof(int));
+			} else {
+				ptc = ptb;
+				ptd = ptc + right;
+
+				loop = right / 2;
+				contrev(pta, ptb, ptc, ptd, loop);
+				pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
+
+				loop = (ptb - pta) / 2;
+				shiftrev_down(pta, ptb, ptd, loop);
+				pta += loop, ptb -= loop, ptd -= loop;
+
+				loop = (ptd - pta) / 2;
+				justrev(pta, ptd, loop);
+			}
+		}
+	} else {
+		pta = array;
+		ptb = pta + left;
+
+		justswap(pta, ptb, left);
+	}
+}
+
+#undef MAX_AUX
+#undef I_WANT_IT_TO_BE_FAST
+#else
+
+// 2021 - Conjoined Triple Reversal rotation by Igor van den Hoven
 void contrev_rotation(int *array, size_t left, size_t right)
 {
 	int *pta, *ptb, *ptc, *ptd;
@@ -288,18 +420,6 @@ void contrev_rotation(int *array, size_t left, size_t right)
 
 	if (left > right)
 	{
-#ifdef I_WANT_IT_TO_BE_FAST
-		loop = right / 2;
-		contrev(pta, ptb, ptc, ptd, loop);
-		pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
-
-		loop = (ptb - pta) / 2;
-		shiftrev_down(pta, ptb, ptd, loop);
-		pta += loop, ptb -= loop, ptd -= loop;
-
-		loop = (ptd - pta) / 2;
-		justrev(pta, ptd, loop);
-#else
 		int swap;
 
 		loop = right / 2;
@@ -322,22 +442,9 @@ void contrev_rotation(int *array, size_t left, size_t right)
 		{
 			swap = *pta; *pta++ = *--ptd; *ptd = swap;
 		}
-#endif
 	}
 	else if (left < right)
 	{
-#ifdef I_WANT_IT_TO_BE_FAST
-		loop = left / 2;
-		contrev(pta, ptb, ptc, ptd, loop);
-		pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
-
-		loop = (ptd - ptc) / 2;
-		shiftrev_up(pta, ptc, ptd, loop);
-		pta += loop, ptc += loop, ptd -= loop;
-
-		loop = (ptd - pta) / 2;
-		justrev(pta, ptd, loop);
-#else
 		int swap;
 
 		loop = left / 2;
@@ -359,27 +466,21 @@ void contrev_rotation(int *array, size_t left, size_t right)
 		{
 			swap = *pta; *pta++ = *--ptd; *ptd = swap;
 		}
-#endif
 	}
 	else
 	{
-#ifdef I_WANT_IT_TO_BE_FAST
-		justswap(pta, ptb, left);
-#else
 		loop = left;
 
 		while (loop--)
 		{
 			int swap = *pta; *pta++ = *ptb; *ptb++ = swap;
 		}
-#endif
 	}
 }
 
-// 2021 - Trinity rotation by Igor van den Hoven (Conjoined Triple Reversal + Bridge rotation)
-
 #define MAX_AUX 8
 
+// 2021 - Trinity rotation by Igor van den Hoven (Conjoined Triple Reversal + Bridge rotation)
 void trinity_rotation(int *array, size_t left, size_t right)
 {
 	int *pta, *ptb, *ptc, *ptd, swap[MAX_AUX];
@@ -417,18 +518,7 @@ void trinity_rotation(int *array, size_t left, size_t right)
 			{
 				ptc = ptb;
 				ptd = ptc + right;
-#ifdef I_WANT_IT_TO_BE_FAST
-				loop = left / 2;
-				contrev(pta, ptb, ptc, ptd, loop);
-				pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
 
-				loop = (ptd - ptc) / 2;
-				shiftrev_up(pta, ptc, ptd, loop);
-				pta += loop, ptc += loop, ptd -= loop;
-
-				loop = (ptd - pta) / 2;
-				justrev(pta, ptd, loop);
-#else
 				loop = left / 2;
 
 				while (loop--)
@@ -449,7 +539,6 @@ void trinity_rotation(int *array, size_t left, size_t right)
 				{
 					*swap = *pta; *pta++ = *--ptd; *ptd = *swap;
 				}
-#endif
 			}
 		}
 	}
@@ -484,18 +573,7 @@ void trinity_rotation(int *array, size_t left, size_t right)
 			{
 				ptc = ptb;
 				ptd = ptc + right;
-#ifdef I_WANT_IT_TO_BE_FAST
-				loop = right / 2;
-				contrev(pta, ptb, ptc, ptd, loop);
-				pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
 
-				loop = (ptb - pta) / 2;
-				shiftrev_down(pta, ptb, ptd, loop);
-				pta += loop, ptb -= loop, ptd -= loop;
-
-				loop = (ptd - pta) / 2;
-				justrev(pta, ptd, loop);
-#else
 				loop = right / 2;
 
 				while (loop--)
@@ -516,7 +594,6 @@ void trinity_rotation(int *array, size_t left, size_t right)
 				{
 					*swap = *pta; *pta++ = *--ptd; *ptd = *swap;
 				}
-#endif
 			}
 		}
 	}
@@ -524,19 +601,16 @@ void trinity_rotation(int *array, size_t left, size_t right)
 	{
 		pta = array;
 		ptb = pta + left;
-#ifdef I_WANT_IT_TO_BE_FAST
-		justswap(pta, ptb, left);
-#else
+
 		while (left--)
 		{
 			*swap = *pta; *pta++ = *ptb; *ptb++ = *swap;
 		}
-#endif
 	}
 }
 
 #undef MAX_AUX
-#undef I_WANT_IT_TO_BE_FAST
+#endif
 
 // 1981 - Gries-Mills rotation by David Gries and Harlan Mills
 

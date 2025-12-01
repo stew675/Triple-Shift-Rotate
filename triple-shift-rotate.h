@@ -77,7 +77,7 @@
 // stack buffered calls of rotate_small() and rotate_overlap() to speed up
 // the handling of small transfers
 //
-// Suggested values to use here range from 128-1024 bytes.  A size of 0 can
+// Suggested values to use here range from 64-1024 bytes.  A size of 0 can
 // be set, which forces the algorithms to do all transfers in-place, which
 // naturally comes with a performance penalty for small item sizes in the
 // scenarios described above.
@@ -209,6 +209,19 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 //------------------------------------------------------------------------------
 
 static void
+reverse_block_outwards(int32_t * restrict pa, int32_t * restrict pe)
+{
+	size_t num = (pe - pa) >> 1;
+	int32_t	*stop = pa, t;
+
+	pa += num;
+	pe -= num;
+	while (pa != stop)
+		t = *--pa, *pa = *pe, *pe++ = t;
+} // reverse_block
+
+
+static void
 reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 {
 	size_t num = (pe - pa) >> 1;
@@ -238,14 +251,30 @@ reverse_and_shift(int32_t * restrict pa, int32_t * restrict pc, size_t na)
 		t = *pa, *pa = *pc, *pc = t;
 } // reverse_and_shift
 
+// Stew's optimised triple-reverse.  Typically 5-10% faster than a naive triple reverse
 static void
 triple_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 {
 	int32_t	*pb = pa + na, *pe = pb + nb;
 
-	reverse_block(pa, pe);
-	reverse_block(pa, pb);
-	reverse_block(pb, pe);
+	// The "cross-over" point here is almost guaranteed to be
+	// CPU architecture dependent, and reliant upon the size
+	// of the CPU L1 cache.  We'll just use 60K items for now
+	if ((na + nb) < 60000) {
+		reverse_block(pa, pe);
+	} else {
+		reverse_block_outwards(pa, pe);
+	}
+
+	// Unreversing the smaller block first is almost
+	// always faster due to CPU cache locality
+	if (na < nb) {
+		reverse_block(pa, pb);
+		reverse_block(pb, pe);
+	} else {
+		reverse_block(pb, pe);
+		reverse_block(pa, pb);
+	}
 } // triple_reverse_rotate
 
 // Half-reverse rotate is my take on the traditional triple-reverse rotation

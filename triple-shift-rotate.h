@@ -69,7 +69,7 @@
 // 2000-8000 item ranges.
 // TODO - Find a solution that doesn't require as much stack space (even if it
 // is just 256 bytes).
-#define SMALL_ROTATE_SIZE      64
+#define SMALL_ROTATE_SIZE      256
 
 // This is done to prevent compiler complaints if SMALL_ROTATE_SIZE is set to 0
 #if (SMALL_ROTATE_SIZE > 0)

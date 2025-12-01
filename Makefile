@@ -21,8 +21,8 @@ BIN=rotate
 # COMPILE TIME OPTION FLAGS
 ######################################################################################
 
-CC= gcc
-#CC= clang
+#CC= gcc
+CC= clang
 CC_OPT_FLAGS= -O3 -Wno-restrict -Wno-unused-function
 LD_OPT_FLAGS= -O3 
 DEBUG_FLAGS= -Wall # -g -pg --profile -fprofile-arcs -ftest-coverage

@@ -229,7 +229,7 @@ void bridge_rotation(int *array, size_t left, size_t right)
 
 #ifdef I_WANT_IT_TO_BE_FAST
 static void
-reverse_both(int * restrict pa, int * restrict pb, int * restrict pc, int * restrict pd, size_t num)
+contrev(int * restrict pa, int * restrict pb, int * restrict pc, int * restrict pd, size_t num)
 {
 	int	*stop = pa + num, t;
 
@@ -238,7 +238,7 @@ reverse_both(int * restrict pa, int * restrict pb, int * restrict pc, int * rest
 }
 
 static void
-reverse_shift_up(int * restrict pa, int * restrict pc, int * restrict pd, size_t num)
+shiftrev_up(int * restrict pa, int * restrict pc, int * restrict pd, size_t num)
 {
 	int	*stop = pa + num, t;
 
@@ -247,7 +247,7 @@ reverse_shift_up(int * restrict pa, int * restrict pc, int * restrict pd, size_t
 }
 
 static void
-reverse_shift_down(int * restrict pa, int * restrict pb, int * restrict pd, size_t num)
+shiftrev_down(int * restrict pa, int * restrict pb, int * restrict pd, size_t num)
 {
 	int	*stop = pa + num, t;
 
@@ -255,7 +255,8 @@ reverse_shift_down(int * restrict pa, int * restrict pb, int * restrict pd, size
 		t = *--pb, *pb = *pa, *pa++ = *--pd, *pd = t;
 }
 
-static void reverse_it(int * restrict pa, int * restrict pb, size_t num)
+static void
+justrev(int * restrict pa, int * restrict pb, size_t num)
 {
 	int	*stop = pa + num, t;
 
@@ -263,7 +264,8 @@ static void reverse_it(int * restrict pa, int * restrict pb, size_t num)
 		t = *pa, *pa++ = *--pb, *pb = t;
 }
 
-static void swap_it(int * restrict pa, int * restrict pb, size_t num)
+static void
+justswap(int * restrict pa, int * restrict pb, size_t num)
 {
 	int	*stop = pa + num, t;
 
@@ -288,15 +290,15 @@ void contrev_rotation(int *array, size_t left, size_t right)
 	{
 #ifdef I_WANT_IT_TO_BE_FAST
 		loop = right / 2;
-		reverse_both(pta, ptb, ptc, ptd, loop);
+		contrev(pta, ptb, ptc, ptd, loop);
 		pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
 
 		loop = (ptb - pta) / 2;
-		reverse_shift_down(pta, ptb, ptd, loop);
+		shiftrev_down(pta, ptb, ptd, loop);
 		pta += loop, ptb -= loop, ptd -= loop;
 
 		loop = (ptd - pta) / 2;
-		reverse_it(pta, ptd, loop);
+		justrev(pta, ptd, loop);
 #else
 		int swap;
 
@@ -326,15 +328,15 @@ void contrev_rotation(int *array, size_t left, size_t right)
 	{
 #ifdef I_WANT_IT_TO_BE_FAST
 		loop = left / 2;
-		reverse_both(pta, ptb, ptc, ptd, loop);
+		contrev(pta, ptb, ptc, ptd, loop);
 		pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
 
 		loop = (ptd - ptc) / 2;
-		reverse_shift_up(pta, ptc, ptd, loop);
+		shiftrev_up(pta, ptc, ptd, loop);
 		pta += loop, ptc += loop, ptd -= loop;
 
 		loop = (ptd - pta) / 2;
-		reverse_it(pta, ptd, loop);
+		justrev(pta, ptd, loop);
 #else
 		int swap;
 
@@ -362,7 +364,7 @@ void contrev_rotation(int *array, size_t left, size_t right)
 	else
 	{
 #ifdef I_WANT_IT_TO_BE_FAST
-		swap_it(pta, ptb, left);
+		justswap(pta, ptb, left);
 #else
 		loop = left;
 
@@ -417,15 +419,15 @@ void trinity_rotation(int *array, size_t left, size_t right)
 				ptd = ptc + right;
 #ifdef I_WANT_IT_TO_BE_FAST
 				loop = left / 2;
-				reverse_both(pta, ptb, ptc, ptd, loop);
+				contrev(pta, ptb, ptc, ptd, loop);
 				pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
 
 				loop = (ptd - ptc) / 2;
-				reverse_shift_up(pta, ptc, ptd, loop);
+				shiftrev_up(pta, ptc, ptd, loop);
 				pta += loop, ptc += loop, ptd -= loop;
 
 				loop = (ptd - pta) / 2;
-				reverse_it(pta, ptd, loop);
+				justrev(pta, ptd, loop);
 #else
 				loop = left / 2;
 
@@ -484,15 +486,15 @@ void trinity_rotation(int *array, size_t left, size_t right)
 				ptd = ptc + right;
 #ifdef I_WANT_IT_TO_BE_FAST
 				loop = right / 2;
-				reverse_both(pta, ptb, ptc, ptd, loop);
+				contrev(pta, ptb, ptc, ptd, loop);
 				pta += loop, ptb -= loop, ptc += loop, ptd -= loop;
 
 				loop = (ptb - pta) / 2;
-				reverse_shift_down(pta, ptb, ptd, loop);
+				shiftrev_down(pta, ptb, ptd, loop);
 				pta += loop, ptb -= loop, ptd -= loop;
 
 				loop = (ptd - pta) / 2;
-				reverse_it(pta, ptd, loop);
+				justrev(pta, ptd, loop);
 #else
 				loop = right / 2;
 
@@ -523,7 +525,7 @@ void trinity_rotation(int *array, size_t left, size_t right)
 		pta = array;
 		ptb = pta + left;
 #ifdef I_WANT_IT_TO_BE_FAST
-		swap_it(pta, ptb, left);
+		justswap(pta, ptb, left);
 #else
 		while (left--)
 		{

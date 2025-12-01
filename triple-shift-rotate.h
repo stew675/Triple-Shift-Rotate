@@ -147,8 +147,7 @@ rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
 // The following bridge functions are inspired by ideas from
 // Igor's work here: https://github.com/scandum/rotate
 static void
-bridge_down(int32_t * restrict pa, int32_t * restrict pb,
-            int32_t * restrict pd, int32_t * restrict pe)
+bridge_down(int32_t * restrict pa, int32_t * restrict pb, int32_t *pd, int32_t *pe)
 {
 	assert(pb > pa);
 
@@ -158,8 +157,7 @@ bridge_down(int32_t * restrict pa, int32_t * restrict pb,
 
 
 static void
-bridge_up(int32_t * restrict pa, int32_t * restrict pb,
-          int32_t * restrict pc, int32_t * restrict pd)
+bridge_up(int32_t * restrict pa, int32_t *pb, int32_t *pc, int32_t * restrict pd)
 {
 	assert(pc < pd);
 

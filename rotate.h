@@ -273,6 +273,24 @@ justswap(int * restrict pa, int * restrict pb, size_t num)
 		t = *pa, *pa++ = *pb, *pb++ = t;
 }
 
+static void
+do_bridge_down(int32_t *pb, int32_t *pc, int32_t *pd, size_t num)
+{
+	int32_t	*stop = pb - num;
+
+	while (pb != stop)
+		*--pc = *--pd, *pd = *--pb;
+} // do_bridge_down
+
+static void
+do_bridge_up(int32_t *pa, int32_t *pb, int32_t *pc, size_t num)
+{
+	int32_t	*stop = pb + num;
+
+	while (pb != stop)
+		*pc++ = *pa, *pa++ = *pb++;
+} // do_bridge_up
+
 // 2021 - Conjoined Triple Reversal rotation by Igor van den Hoven
 void contrev_rotation(int *array, size_t left, size_t right)
 {
@@ -317,8 +335,8 @@ void contrev_rotation(int *array, size_t left, size_t right)
 // 2021 - Trinity rotation by Igor van den Hoven (Conjoined Triple Reversal + Bridge rotation)
 void trinity_rotation(int *array, size_t left, size_t right)
 {
-	int *pta, *ptb, *ptc, *ptd, swap[MAX_AUX];
-	size_t loop;
+	int	swap[MAX_AUX];
+	int	*pta, *ptb, *ptc, *ptd;
 
 	if (left < right) {
 		if (left <= MAX_AUX) {
@@ -329,7 +347,7 @@ void trinity_rotation(int *array, size_t left, size_t right)
 			pta = array;
 			ptb = pta + left;
 
-			loop = right - left;
+			size_t loop = right - left;
 
 			if (loop <= MAX_AUX && loop > 3) {
 				ptc = pta + right;
@@ -337,9 +355,13 @@ void trinity_rotation(int *array, size_t left, size_t right)
 
 				memcpy(swap, ptb, loop * sizeof(int));
 
+#if 1
+				do_bridge_down(ptb, ptc, ptd, left);
+#else
 				while (left--) {
 					*--ptc = *--ptd; *ptd = *--ptb;
 				}
+#endif
 				memcpy(pta, swap, loop * sizeof(int));
 			} else {
 				ptc = ptb;
@@ -367,17 +389,20 @@ void trinity_rotation(int *array, size_t left, size_t right)
 		} else {
 			pta = array;
 			ptb = pta + left;
-			loop = left - right;
+			size_t loop = left - right;
 
 			if (loop <= MAX_AUX && loop > 3) {
 				ptc = pta + right;
 				ptd = ptc + left;
 
 				memcpy(swap, ptc, loop * sizeof(int));
-
+#if 1
+				do_bridge_up(pta, ptb, ptc, right);
+#else
 				while (right--) {
 					*ptc++ = *pta; *pta++ = *ptb++;
 				}
+#endif
 				memcpy(ptd - loop, swap, loop * sizeof(int));
 			} else {
 				ptc = ptb;

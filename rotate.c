@@ -51,6 +51,7 @@ rotate_function_t rotations[] = {
 //	{helix_rotation,          "Helix Rotation"},
 //	{drill_rotation,          "Drill Rotation"},
 	{reversal_rotation,       "Triple-Reverse Rotate"},
+	{triple_reverse_rotate,   "Stew's Triple-Reverse"},
 	{contrev_rotation,        "ContRev Rotation"},
 	{trinity_rotation,        "Trinity Rotation"},
 	{half_reverse_rotate,     "Half Reverse Rotate"},

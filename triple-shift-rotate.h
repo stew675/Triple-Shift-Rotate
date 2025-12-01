@@ -147,21 +147,21 @@ rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
 // The following bridge functions are inspired by ideas from
 // Igor's work here: https://github.com/scandum/rotate
 static void
-bridge_down(int32_t * restrict pa, int32_t * restrict pb, int32_t *pd, int32_t *pe)
+bridge_down(int32_t * restrict pc, int32_t *pd, int32_t *pe, size_t num)
 {
-	assert(pb > pa);
+	int32_t	*stop = pc - num;
 
-	while (pb != pa)
-		*--pe = *--pb, *pb = *--pd;
+	while (pc != stop)
+		*--pe = *--pc, *pc = *--pd;
 } // bridge_down
 
 
 static void
-bridge_up(int32_t * restrict pa, int32_t *pb, int32_t *pc, int32_t * restrict pd)
+bridge_up(int32_t * restrict pa, int32_t *pb, int32_t *pc, size_t num)
 {
-	assert(pc < pd);
+	int32_t	*stop = pc + num;
 
-	while (pc != pd)
+	while (pc != stop)
 		*pc++ = *pa, *pa++ = *pb++;
 } // bridge_down
 
@@ -184,23 +184,21 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 		// 2.  Swap A with B, while moving B over to the end of the array
 		// 3.  Copy the buffer back to the end of where B is now
 		size_t	nc = nb - na;
-		int32_t	*pd = pe - nc;
+		int32_t	*pc = pa + na, *pd = pc + na;
 
 		memcpy(buf, pd, nc * sizeof(*pa));
-		bridge_down(pa, pb, pd, pe);
-//		for (int32_t *pc = pb; pc > pa; *--pe = *--pc, *pc = *--pd);
-		memcpy(pb, buf, nc * sizeof(*pa));
+		bridge_down(pc, pd, pe, na);
+		memcpy(pc, buf, nc * sizeof(*pa));
 	} else {
 		// Steps are:
 		// 1.  Copy out the overlapping amount from the end of A into the buffer
 		// 2.  Swap non-overlapping portion of A with B, and move B back to PC
 		// 3.  Copy the buffer back to the end of where A now is
 		size_t	nc = na - nb;
-		int32_t	*pc = pa + nb, *pd = pe - nc;
+		int32_t	*pc = pa + nb, *pd = pc + nb;
 
-//		memcpy(buf, pc, nc * sizeof(*pa));
-		bridge_up(pa, pb, pc, pd);
-		for ( ; pc < pd; *pc++ = *pa, *pa++ = *pb++);
+		memcpy(buf, pc, nc * sizeof(*pa));
+		bridge_up(pa, pb, pc, nb);
 		memcpy(pd, buf, nc * sizeof(*pa));
 	}
 } // rotate_overlap
@@ -213,16 +211,11 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 static void
 reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 {
-#if 1
 	size_t num = (pe - pa) >> 1;
-	int32_t	*stop = pa + num;
-	int32_t	t;
+	int32_t	*stop = pa + num, t;
 
 	while (pa != stop)
 		t = *pa, *pa++ = *--pe, *pe = t;
-#else
-	for (int32_t t; pa < --pe; t = *pe, *pe = *pa, *pa++ = t);
-#endif
 } // reverse_block
 
 
@@ -268,13 +261,7 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 
 	if (na && nb) {
 		if (na < nb) {
-//			if (na <= (MIN_STREAM_SIZE / sizeof(*pa)))
-//				return rotate_small(pa, pb, pe);
-
 			size_t nc = nb - na;
-
-//			if (nc <= (MIN_STREAM_SIZE / sizeof(*pa)))
-//				return rotate_overlap(pa, pb, pe);
 
 			if (pc <= (pe - nc)) {
 				reverse_and_shift(pe - nc, pb, nc);
@@ -288,13 +275,7 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 		} else if (na == nb) {
 			two_way_swap_block(pa, pb, na);
 		} else {
-//			if (nb <= (MIN_STREAM_SIZE / sizeof(*pa)))
-//				return rotate_small(pa, pb, pe);
-
 			size_t nc = na - nb;
-
-//			if (nc <= (MIN_STREAM_SIZE / sizeof(*pa)))
-//				return rotate_overlap(pa, pb, pe);
 
 			if ((pa + nc) <= pc) {
 				reverse_and_shift(pa, pc, nc);

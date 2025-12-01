@@ -228,10 +228,11 @@ void bridge_rotation(int *array, size_t left, size_t right)
 #define I_WANT_IT_TO_BE_FAST
 
 #ifdef I_WANT_IT_TO_BE_FAST
+
 static void
 contrev(int * restrict pa, int * restrict pb, int * restrict pc, int * restrict pd, size_t num)
 {
-	int	*stop = pa + num, t;
+	int	* restrict stop = pa + num, t;
 
 	while (pa != stop)
 		t = *--pb, *pb = *pa, *pa++ = *pc, *pc++ = *--pd, *pd = t;
@@ -240,7 +241,7 @@ contrev(int * restrict pa, int * restrict pb, int * restrict pc, int * restrict 
 static void
 shiftrev_up(int * restrict pa, int * restrict pc, int * restrict pd, size_t num)
 {
-	int	*stop = pa + num, t;
+	int	* restrict stop = pa + num, t;
 
 	while (pa != stop)
 		t = *pc, *pc++ = *--pd, *pd = *pa, *pa++ = t;
@@ -249,7 +250,7 @@ shiftrev_up(int * restrict pa, int * restrict pc, int * restrict pd, size_t num)
 static void
 shiftrev_down(int * restrict pa, int * restrict pb, int * restrict pd, size_t num)
 {
-	int	*stop = pa + num, t;
+	int	* restrict stop = pa + num, t;
 
 	while (pa != stop)
 		t = *--pb, *pb = *pa, *pa++ = *--pd, *pd = t;
@@ -258,7 +259,7 @@ shiftrev_down(int * restrict pa, int * restrict pb, int * restrict pd, size_t nu
 static void
 justrev(int * restrict pa, int * restrict pb, size_t num)
 {
-	int	*stop = pa + num, t;
+	int	* restrict stop = pa + num, t;
 
 	while (pa != stop)
 		t = *pa, *pa++ = *--pb, *pb = t;
@@ -267,25 +268,25 @@ justrev(int * restrict pa, int * restrict pb, size_t num)
 static void
 justswap(int * restrict pa, int * restrict pb, size_t num)
 {
-	int	*stop = pa + num, t;
+	int	* restrict stop = pa + num, t;
 
 	while (pa != stop)
 		t = *pa, *pa++ = *pb, *pb++ = t;
 }
 
 static void
-do_bridge_down(int32_t *pb, int32_t *pc, int32_t *pd, size_t num)
+do_bridge_down(int *pb, int *pc, int * restrict pd, size_t num)
 {
-	int32_t	*stop = pb - num;
+	int	* restrict stop = pb - num;
 
 	while (pb != stop)
 		*--pc = *--pd, *pd = *--pb;
 } // do_bridge_down
 
 static void
-do_bridge_up(int32_t *pa, int32_t *pb, int32_t *pc, size_t num)
+do_bridge_up(int * restrict pa, int *pb, int *pc, size_t num)
 {
-	int32_t	*stop = pb + num;
+	int	* restrict stop = pb + num;
 
 	while (pb != stop)
 		*pc++ = *pa, *pa++ = *pb++;
@@ -354,14 +355,7 @@ void trinity_rotation(int *array, size_t left, size_t right)
 				ptd = ptc + left;
 
 				memcpy(swap, ptb, loop * sizeof(int));
-
-#if 1
 				do_bridge_down(ptb, ptc, ptd, left);
-#else
-				while (left--) {
-					*--ptc = *--ptd; *ptd = *--ptb;
-				}
-#endif
 				memcpy(pta, swap, loop * sizeof(int));
 			} else {
 				ptc = ptb;
@@ -396,13 +390,7 @@ void trinity_rotation(int *array, size_t left, size_t right)
 				ptd = ptc + left;
 
 				memcpy(swap, ptc, loop * sizeof(int));
-#if 1
 				do_bridge_up(pta, ptb, ptc, right);
-#else
-				while (right--) {
-					*ptc++ = *pta; *pta++ = *ptb++;
-				}
-#endif
 				memcpy(ptd - loop, swap, loop * sizeof(int));
 			} else {
 				ptc = ptb;
@@ -430,6 +418,7 @@ void trinity_rotation(int *array, size_t left, size_t right)
 
 #undef MAX_AUX
 #undef I_WANT_IT_TO_BE_FAST
+
 #else
 
 // 2021 - Conjoined Triple Reversal rotation by Igor van den Hoven

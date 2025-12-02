@@ -96,7 +96,7 @@
 
 // Swaps two blocks of equal size.  Contents of PA are swapped
 // with the contents of PB. Terminates when PA reaches PE
-static void
+static inline void
 two_way_swap_block(int32_t * restrict pa, int32_t * restrict pb, size_t num)
 {
 	int32_t	*stop = pb + num, t;
@@ -146,7 +146,7 @@ rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
 
 // The following bridge functions are inspired by ideas from
 // Igor's work here: https://github.com/scandum/rotate
-static void
+static inline void
 bridge_down(int32_t * restrict pc, int32_t *pd, int32_t *pe, size_t num)
 {
 	int32_t	*stop = pc - num;
@@ -156,7 +156,7 @@ bridge_down(int32_t * restrict pc, int32_t *pd, int32_t *pe, size_t num)
 } // bridge_down
 
 
-static void
+static inline void
 bridge_up(int32_t * restrict pa, int32_t *pb, int32_t *pc, size_t num)
 {
 	int32_t	*stop = pc + num;
@@ -208,7 +208,7 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 //                           Half-Reverse Rotate
 //------------------------------------------------------------------------------
 
-static void
+static inline void
 reverse_block_outwards(int32_t * restrict pa, int32_t * restrict pe)
 {
 	size_t num = (pe - pa) >> 1;
@@ -221,7 +221,7 @@ reverse_block_outwards(int32_t * restrict pa, int32_t * restrict pe)
 } // reverse_block
 
 
-static void
+static inline void
 reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 {
 	size_t num = (pe - pa) >> 1;
@@ -235,7 +235,7 @@ reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 // When given two blocks, A and B, of equal size, A is swapped with B, but
 // the items of B are reversed in order, while the items of A remain in
 // their original ordering
-static void
+static inline void
 reverse_and_shift(int32_t * restrict pa, int32_t * restrict pc, size_t na)
 {
 	int32_t	* restrict stop = pa + (na >> 1);
@@ -418,7 +418,7 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 
 // When given 3 blocks of equal size, everything in B goes to A, everything
 // in C goes to B, and everything in A goes to C.
-static void
+static inline void
 three_way_swap_block(int32_t * restrict pa, int32_t * restrict pb,
                      int32_t * restrict pc, size_t num)
 {

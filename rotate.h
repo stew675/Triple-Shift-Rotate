@@ -229,7 +229,7 @@ void bridge_rotation(int *array, size_t left, size_t right)
 
 #ifdef I_WANT_IT_TO_BE_FAST
 
-static void
+static inline void
 contrev(int * restrict pa, int * restrict pb, int * restrict pc, int * restrict pd, size_t num)
 {
 	int	* restrict stop = pa + num, t;
@@ -238,7 +238,7 @@ contrev(int * restrict pa, int * restrict pb, int * restrict pc, int * restrict 
 		t = *--pb, *pb = *pa, *pa++ = *pc, *pc++ = *--pd, *pd = t;
 }
 
-static void
+static inline void
 shiftrev_up(int * restrict pa, int * restrict pc, int * restrict pd, size_t num)
 {
 	int	* restrict stop = pa + num, t;
@@ -247,7 +247,7 @@ shiftrev_up(int * restrict pa, int * restrict pc, int * restrict pd, size_t num)
 		t = *pc, *pc++ = *--pd, *pd = *pa, *pa++ = t;
 }
 
-static void
+static inline void
 shiftrev_down(int * restrict pa, int * restrict pb, int * restrict pd, size_t num)
 {
 	int	* restrict stop = pa + num, t;
@@ -256,7 +256,7 @@ shiftrev_down(int * restrict pa, int * restrict pb, int * restrict pd, size_t nu
 		t = *--pb, *pb = *pa, *pa++ = *--pd, *pd = t;
 }
 
-static void
+static inline void
 justrev(int * restrict pa, int * restrict pb, size_t num)
 {
 	int	* restrict stop = pa + num, t;
@@ -265,7 +265,7 @@ justrev(int * restrict pa, int * restrict pb, size_t num)
 		t = *pa, *pa++ = *--pb, *pb = t;
 }
 
-static void
+static inline void
 justswap(int * restrict pa, int * restrict pb, size_t num)
 {
 	int	* restrict stop = pa + num, t;
@@ -274,7 +274,7 @@ justswap(int * restrict pa, int * restrict pb, size_t num)
 		t = *pa, *pa++ = *pb, *pb++ = t;
 }
 
-static void
+static inline void
 do_bridge_down(int *pb, int *pc, int * restrict pd, size_t num)
 {
 	int	* restrict stop = pb - num;
@@ -283,7 +283,7 @@ do_bridge_down(int *pb, int *pc, int * restrict pd, size_t num)
 		*--pc = *--pd, *pd = *--pb;
 } // do_bridge_down
 
-static void
+static inline void
 do_bridge_up(int * restrict pa, int *pb, int *pc, size_t num)
 {
 	int	* restrict stop = pb + num;

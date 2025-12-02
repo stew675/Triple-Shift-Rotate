@@ -51,11 +51,12 @@ rotate_function_t rotations[] = {
 //	{helix_rotation,          "Helix Rotation"},
 //	{drill_rotation,          "Drill Rotation"},
 //	{reversal_rotation,       "Triple-Reverse Rotate"},
+//	{triple_reverse_rotate,   "Stew's Triple-Reverse"},
 //	{contrev_rotation,        "ContRev Rotation"},
 	{trinity_rotation,        "Trinity Rotation"},
 //	{half_reverse_rotate,     "Half Reverse Rotate"},
 //	{triple_shift_rotate,     "Triple Shift Rotate"},
-//	{triple_shift_rotate_v2,  "Triple Shift Rotate V2"},
+	{triple_shift_rotate_v2,  "Triple Shift Rotate V2"},
 //	{auxiliary_rotation,      "Aux Rotation (N/2 Aux)"},
 //	{bridge_rotation,         "Bridge Rotate (N/3 Aux)"},
 	{NULL,                    "End Of List"}

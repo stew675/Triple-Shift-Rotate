@@ -58,24 +58,36 @@
 #include <stddef.h>
 #include <string.h>
 
-// I've discovered that the performance "roughness" at certain sizes is highly 
-// influenced by this value.  I need to do more research on what exactly is
-// going on to cause the slowness.  A higher SMALL_ROTATE_SIZE means that the
-// bulk memmove() operations kick in earlier, so it's clear that the algorithm
-// bogs down on the small fiddly stuff while excelling at quickly collapsing
-// the operational space.  There must exist a different solution to address
-// bogging down and I need to find it.  For now though, I'm raising this value
-// from 16 to 64, as that almost completely solves the issue in the problematic
-// 2000-8000 item ranges.
-// TODO - Find a solution that doesn't require as much stack space (even if it
-// is just 256 bytes).
-#define SMALL_ROTATE_SIZE      256
+// At their core, both triple_shift_rotate() and triple_shift_rotate_v2() are
+// essentially using the overlap between any two blocks as an in-place buffer
+// to effectuate a streaming transfer of bytes when exchanging the two blocks
+//
+// As such, their performance is highly reliant upon the compiler being able
+// to optimise and engage SSE/AVX calls behind the scenes to rapidly exchange
+// bytes.  When the effective buffer gets too small, the algorithms need to
+// drop back to slower byte/word-wise copying, which is exactly why rotating
+// a tiny block with a large block, or rotating two blocks that only differ
+// in size by a small amount are slow degenerate scenarios.  It's fairly
+// common practise, even for in-place algorithms, to have small fixed sized
+// temporary buffers allocated on the stack to boost their operational speed.
+//
+// As such, the MIN_STREAM_SIZE definition below specifies the minimum overlap
+// size that will be used for doing data transfers.  Overlaps smaller than
+// this number of bytes (note, BYTES and not ITEMS), will instead use the
+// stack buffered calls of rotate_small() and rotate_overlap() to speed up
+// the handling of small transfers
+//
+// Suggested values to use here range from 64-1024 bytes.  A size of 0 can
+// be set, which forces the algorithms to do all transfers in-place, which
+// naturally comes with a performance penalty for small item sizes in the
+// scenarios described above.
+#define MIN_STREAM_SIZE      1024
 
 // This is done to prevent compiler complaints if SMALL_ROTATE_SIZE is set to 0
-#if (SMALL_ROTATE_SIZE > 0)
-#define SMALL_BUF_SIZE SMALL_ROTATE_SIZE
+#if (MIN_STREAM_SIZE > 0)
+#define STREAM_BUF_SIZE MIN_STREAM_SIZE
 #else
-#define SMALL_BUF_SIZE 1
+#define STREAM_BUF_SIZE 1
 #endif
 
 //------------------------------------------------------------------------------
@@ -112,9 +124,9 @@ static void
 rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
 {
 	size_t	na = pb - pa, nb = pe - pb;
-
-	int32_t	buf[SMALL_BUF_SIZE];
 	int32_t	*pc = pa + nb;
+	char	_buf[STREAM_BUF_SIZE];
+	void	*buf = (void *)_buf;
 
 	// Steps are:
 	// 1.  Copy out the smaller of the two arrays into the buffer entirely
@@ -132,6 +144,28 @@ rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
 } // rotate_small
 
 
+// The following bridge functions are inspired by ideas from
+// Igor's work here: https://github.com/scandum/rotate
+static void
+bridge_down(int32_t * restrict pc, int32_t *pd, int32_t *pe, size_t num)
+{
+	int32_t	*stop = pc - num;
+
+	while (pc != stop)
+		*--pe = *--pc, *pc = *--pd;
+} // bridge_down
+
+
+static void
+bridge_up(int32_t * restrict pa, int32_t *pb, int32_t *pc, size_t num)
+{
+	int32_t	*stop = pc + num;
+
+	while (pc != stop)
+		*pc++ = *pa, *pa++ = *pb++;
+} // bridge_down
+
+
 // rotate_overlap()
 // Uses a limited amount of stack space to rotate two blocks that overlap by
 // only a small amount.  It's basically a special variant of rotate_small()
@@ -141,7 +175,8 @@ static void
 rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 {
 	size_t	na = pb - pa, nb = pe - pb;
-	int32_t	buf[SMALL_BUF_SIZE];
+	char	_buf[STREAM_BUF_SIZE];
+	void	*buf = (void *)_buf;
 
 	if (na < nb) {
 		// Steps are:
@@ -149,21 +184,21 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 		// 2.  Swap A with B, while moving B over to the end of the array
 		// 3.  Copy the buffer back to the end of where B is now
 		size_t	nc = nb - na;
-		int32_t	*pc = pb, *pd = pe - nc;
+		int32_t	*pc = pa + na, *pd = pc + na;
 
 		memcpy(buf, pd, nc * sizeof(*pa));
-		for ( ; pc > pa; *--pe = *--pc, *pc = *--pd);
-		memcpy(pb, buf, nc * sizeof(*pa));
+		bridge_down(pc, pd, pe, na);
+		memcpy(pc, buf, nc * sizeof(*pa));
 	} else {
 		// Steps are:
 		// 1.  Copy out the overlapping amount from the end of A into the buffer
 		// 2.  Swap non-overlapping portion of A with B, and move B back to PC
 		// 3.  Copy the buffer back to the end of where A now is
 		size_t	nc = na - nb;
-		int32_t	*pc = pa + nb, *pd = pe - nc;
+		int32_t	*pc = pa + nb, *pd = pc + nb;
 
 		memcpy(buf, pc, nc * sizeof(*pa));
-		for ( ; pc < pd; *pc++ = *pa, *pa++ = *pb++);
+		bridge_up(pa, pb, pc, nb);
 		memcpy(pd, buf, nc * sizeof(*pa));
 	}
 } // rotate_overlap
@@ -174,9 +209,26 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 //------------------------------------------------------------------------------
 
 static void
+reverse_block_outwards(int32_t * restrict pa, int32_t * restrict pe)
+{
+	size_t num = (pe - pa) >> 1;
+	int32_t	*stop = pa, t;
+
+	pa += num;
+	pe -= num;
+	while (pa != stop)
+		t = *--pa, *pa = *pe, *pe++ = t;
+} // reverse_block
+
+
+static void
 reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 {
-	for (int32_t t; pa < --pe; t = *pe, *pe = *pa, *pa++ = t);
+	size_t num = (pe - pa) >> 1;
+	int32_t	*stop = pa + num, t;
+
+	while (pa != stop)
+		t = *pa, *pa++ = *--pe, *pe = t;
 } // reverse_block
 
 
@@ -184,27 +236,46 @@ reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 // the items of B are reversed in order, while the items of A remain in
 // their original ordering
 static void
-reverse_and_shift(int32_t *pa, int32_t *pc, size_t na)
+reverse_and_shift(int32_t * restrict pa, int32_t * restrict pc, size_t na)
 {
-	int32_t *pb = pa + (na - 1);
-	int32_t *pd = pc + (na - 1);
+	int32_t	* restrict stop = pa + (na >> 1);
+	int32_t * restrict pb = pa + na;
+	int32_t * restrict pd = pc + na;
 	int32_t	t;
 
-	while (pa < pb) {
-		t = *pa;
-		*pa++ = *pd;
-		*pd-- = *pb;
-		*pb-- = *pc;
-		*pc++ = t;
-	}
+	while (pa != stop)
+		t = *pa, *pa++ = *--pd, *pd = *--pb, *pb = *pc, *pc++ = t;
+
 	// Handle single straggler corner case
-	if (pa == pb) {
-		t = *pa;
-		*pa = *pc;
-		*pc = t;
-	}
+	if (pa == pb)
+		t = *pa, *pa = *pc, *pc = t;
 } // reverse_and_shift
 
+// Stew's optimised triple-reverse.  Typically 5-10% faster than a naive triple reverse
+static void
+triple_reverse_rotate(int32_t *pa, size_t na, size_t nb)
+{
+	int32_t	*pb = pa + na, *pe = pb + nb;
+
+	// The "cross-over" point here is almost guaranteed to be
+	// CPU architecture dependent, and reliant upon the size
+	// of the CPU L1 cache.  We'll just use 60K items for now
+	if ((na + nb) < 60000) {
+		reverse_block(pa, pe);
+	} else {
+		reverse_block_outwards(pa, pe);
+	}
+
+	// Unreversing the smaller block first is almost
+	// always faster due to CPU cache locality
+	if (na < nb) {
+		reverse_block(pa, pb);
+		reverse_block(pb, pe);
+	} else {
+		reverse_block(pb, pe);
+		reverse_block(pa, pb);
+	}
+} // triple_reverse_rotate
 
 // Half-reverse rotate is my take on the traditional triple-reverse rotation
 // algorithm.  Instead of reversing both blocks, it only reverses the larger
@@ -219,13 +290,7 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 
 	if (na && nb) {
 		if (na < nb) {
-			if (na <= SMALL_ROTATE_SIZE)
-				return rotate_small(pa, pb, pe);
-
 			size_t nc = nb - na;
-
-			if (nc <= SMALL_ROTATE_SIZE)
-				return rotate_overlap(pa, pb, pe);
 
 			if (pc <= (pe - nc)) {
 				reverse_and_shift(pe - nc, pb, nc);
@@ -239,13 +304,7 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 		} else if (na == nb) {
 			two_way_swap_block(pa, pb, na);
 		} else {
-			if (nb <= SMALL_ROTATE_SIZE)
-				return rotate_small(pa, pb, pe);
-
 			size_t nc = na - nb;
-
-			if (nc <= SMALL_ROTATE_SIZE)
-				return rotate_overlap(pa, pb, pe);
 
 			if ((pa + nc) <= pc) {
 				reverse_and_shift(pa, pc, nc);
@@ -310,10 +369,10 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			// no = number of overlapping items
 			size_t	no = nb - na;
 
-			if (na <= SMALL_ROTATE_SIZE)
+			if (na <= (MIN_STREAM_SIZE / sizeof(*pa)))
 				return rotate_small(pa, pb, pe);
 
-			if (no <= SMALL_ROTATE_SIZE)
+			if (no <= (MIN_STREAM_SIZE / sizeof(*pa)))
 				return rotate_overlap(pa, pb, pe);
 
 			// Collapses the operational space by (2 * no) every loop
@@ -333,10 +392,10 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 			// no = number of overlapping items
 			size_t	no = na - nb;
 
-			if (nb <= SMALL_ROTATE_SIZE)
+			if (nb <= (MIN_STREAM_SIZE / sizeof(*pa)))
 				return rotate_small(pa, pb, pe);
 
-			if (no <= SMALL_ROTATE_SIZE)
+			if (no <= (MIN_STREAM_SIZE / sizeof(*pa)))
 				return rotate_overlap(pa, pb, pe);
 
 			// Collapses the operational space by (2 * no) every loop
@@ -379,12 +438,12 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 {
 	for (int32_t *pb = pa + na, *pe = pb + nb; na; ) {
 		if (na < nb) {
-			if (na <= SMALL_ROTATE_SIZE)
+			if (na <= (MIN_STREAM_SIZE / sizeof(*pa)))
 				return rotate_small(pa, pb, pe);
 
 			size_t  nc = nb - na;
 
-			if (nc <= SMALL_ROTATE_SIZE)
+			if (nc <= (MIN_STREAM_SIZE / sizeof(*pa)))
 				return rotate_overlap(pa, pb, pe);
 
 			if (nc < na) {
@@ -402,12 +461,12 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 		} else if (nb == 0) {
 			return;
 		} else {
-			if (nb <= SMALL_ROTATE_SIZE)
+			if (nb <= (MIN_STREAM_SIZE / sizeof(*pa)))
 				return rotate_small(pa, pb, pe);
 
 			size_t  nc = na - nb;
 
-			if (nc <= SMALL_ROTATE_SIZE)
+			if (nc <= (MIN_STREAM_SIZE / sizeof(*pa)))
 				return rotate_overlap(pa, pb, pe);
 
 			if (nc < nb) {
@@ -462,6 +521,6 @@ old_forsort_rotate(int32_t *pa, size_t na, size_t nb)
 //                              #define cleanup
 //------------------------------------------------------------------------------
 
-#undef SMALL_ROTATE_SIZE
-#undef SMALL_BUF_SIZE
+#undef MIN_STREAM_SIZE
+#undef STREAM_BUF_SIZE
 #undef SWAP

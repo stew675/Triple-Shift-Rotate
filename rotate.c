@@ -35,7 +35,7 @@
 #include "rotate.h"
 #include "triple-shift-rotate.h"
 
-typedef void rotate_function(intptr_t *array, size_t left, size_t right);
+typedef void rotate_function(uintptr_t *array, size_t left, size_t right);
 
 typedef struct {
 	rotate_function		*rotate;
@@ -91,7 +91,7 @@ int
 main()
 {
 	struct	timespec start, end;
-	intptr_t *a;
+	uintptr_t *a;
 
 	a = malloc(sizeof(*a) * MAX_VALS);
 	if (!a) {

@@ -97,9 +97,9 @@
 // Swaps two blocks of equal size.  Contents of PA are swapped
 // with the contents of PB. Terminates when PA reaches PE
 static inline void
-two_way_swap_block(int32_t * restrict pa, int32_t * restrict pb, size_t num)
+two_way_swap_block(intptr_t * restrict pa, intptr_t * restrict pb, size_t num)
 {
-	int32_t	*stop = pb + num, t;
+	intptr_t *stop = pb + num, t;
 
 	while (pb != stop)
 		t = *pa, *pa++ = *pb, *pb++ = t;
@@ -121,10 +121,10 @@ two_way_swap_block(int32_t * restrict pa, int32_t * restrict pb, size_t num)
 //
 // NOTICE: This is NOT a general purpose rotation function!
 static void
-rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
+rotate_small(intptr_t *pa, intptr_t *pb, intptr_t *pe)
 {
 	size_t	na = pb - pa, nb = pe - pb;
-	int32_t	*pc = pa + nb;
+	intptr_t *pc = pa + nb;
 	char	_buf[STREAM_BUF_SIZE];
 	void	*buf = (void *)_buf;
 
@@ -147,9 +147,9 @@ rotate_small(int32_t *pa, int32_t *pb, int32_t *pe)
 // The following bridge functions are inspired by ideas from
 // Igor's work here: https://github.com/scandum/rotate
 static inline void
-bridge_down(int32_t * restrict pc, int32_t *pd, int32_t *pe, size_t num)
+bridge_down(intptr_t * restrict pc, intptr_t *pd, intptr_t *pe, size_t num)
 {
-	int32_t	*stop = pc - num;
+	intptr_t *stop = pc - num;
 
 	while (pc != stop)
 		*--pe = *--pc, *pc = *--pd;
@@ -157,9 +157,9 @@ bridge_down(int32_t * restrict pc, int32_t *pd, int32_t *pe, size_t num)
 
 
 static inline void
-bridge_up(int32_t * restrict pa, int32_t *pb, int32_t *pc, size_t num)
+bridge_up(intptr_t * restrict pa, intptr_t *pb, intptr_t *pc, size_t num)
 {
-	int32_t	*stop = pc + num;
+	intptr_t *stop = pc + num;
 
 	while (pc != stop)
 		*pc++ = *pa, *pa++ = *pb++;
@@ -172,7 +172,7 @@ bridge_up(int32_t * restrict pa, int32_t *pb, int32_t *pc, size_t num)
 //
 // NOTICE: This is NOT a general purpose rotation function!
 static void
-rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
+rotate_overlap(intptr_t *pa, intptr_t *pb, intptr_t *pe)
 {
 	size_t	na = pb - pa, nb = pe - pb;
 	char	_buf[STREAM_BUF_SIZE];
@@ -184,7 +184,7 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 		// 2.  Swap A with B, while moving B over to the end of the array
 		// 3.  Copy the buffer back to the end of where B is now
 		size_t	nc = nb - na;
-		int32_t	*pc = pa + na, *pd = pc + na;
+		intptr_t *pc = pa + na, *pd = pc + na;
 
 		memcpy(buf, pd, nc * sizeof(*pa));
 		bridge_down(pc, pd, pe, na);
@@ -195,7 +195,7 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 		// 2.  Swap non-overlapping portion of A with B, and move B back to PC
 		// 3.  Copy the buffer back to the end of where A now is
 		size_t	nc = na - nb;
-		int32_t	*pc = pa + nb, *pd = pc + nb;
+		intptr_t *pc = pa + nb, *pd = pc + nb;
 
 		memcpy(buf, pc, nc * sizeof(*pa));
 		bridge_up(pa, pb, pc, nb);
@@ -209,10 +209,10 @@ rotate_overlap(int32_t *pa, int32_t *pb, int32_t *pe)
 //------------------------------------------------------------------------------
 
 static inline void
-reverse_block_outwards(int32_t * restrict pa, int32_t * restrict pe)
+reverse_block_outwards(intptr_t * restrict pa, intptr_t * restrict pe)
 {
 	size_t num = (pe - pa) >> 1;
-	int32_t	*stop = pa, t;
+	intptr_t *stop = pa, t;
 
 	pa += num;
 	pe -= num;
@@ -222,10 +222,10 @@ reverse_block_outwards(int32_t * restrict pa, int32_t * restrict pe)
 
 
 static inline void
-reverse_block(int32_t * restrict pa, int32_t * restrict pe)
+reverse_block(intptr_t * restrict pa, intptr_t * restrict pe)
 {
 	size_t num = (pe - pa) >> 1;
-	int32_t	*stop = pa + num, t;
+	intptr_t *stop = pa + num, t;
 
 	while (pa != stop)
 		t = *pa, *pa++ = *--pe, *pe = t;
@@ -236,12 +236,12 @@ reverse_block(int32_t * restrict pa, int32_t * restrict pe)
 // the items of B are reversed in order, while the items of A remain in
 // their original ordering
 static inline void
-reverse_and_shift(int32_t * restrict pa, int32_t * restrict pc, size_t na)
+reverse_and_shift(intptr_t * restrict pa, intptr_t * restrict pc, size_t na)
 {
-	int32_t	* restrict stop = pa + (na >> 1);
-	int32_t * restrict pb = pa + na;
-	int32_t * restrict pd = pc + na;
-	int32_t	t;
+	intptr_t * restrict stop = pa + (na >> 1);
+	intptr_t * restrict pb = pa + na;
+	intptr_t * restrict pd = pc + na;
+	intptr_t t;
 
 	while (pa != stop)
 		t = *pa, *pa++ = *--pd, *pd = *--pb, *pb = *pc, *pc++ = t;
@@ -253,9 +253,9 @@ reverse_and_shift(int32_t * restrict pa, int32_t * restrict pc, size_t na)
 
 // Stew's optimised triple-reverse.  Typically 5-10% faster than a naive triple reverse
 static void
-triple_reverse_rotate(int32_t *pa, size_t na, size_t nb)
+triple_reverse_rotate(intptr_t *pa, size_t na, size_t nb)
 {
-	int32_t	*pb = pa + na, *pe = pb + nb;
+	intptr_t *pb = pa + na, *pe = pb + nb;
 
 	// The "cross-over" point here is almost guaranteed to be
 	// CPU architecture dependent, and reliant upon the size
@@ -284,9 +284,9 @@ triple_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 // step. Finally the overlapping section of the larger block is reversed. It
 // is basically triple-reverse, but reversing just one of the blocks instead
 static void
-half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
+half_reverse_rotate(intptr_t *pa, size_t na, size_t nb)
 {
-	int32_t	*pb = pa + na, *pc = pa + nb, *pe = pb + nb;
+	intptr_t *pb = pa + na, *pc = pa + nb, *pe = pb + nb;
 
 	if (na && nb) {
 		if (na < nb) {
@@ -327,9 +327,9 @@ half_reverse_rotate(int32_t *pa, size_t na, size_t nb)
 // Helper function that operates on A, O, and B blocks, where O is treated as a
 // ring buffer.  ring_positive does a left-rotate by 1 of the 3 blocks
 static inline void
-ring_positive(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict pb, size_t num)
+ring_positive(intptr_t * restrict pa, intptr_t * restrict po, intptr_t * restrict pb, size_t num)
 {
-	int32_t	*stop = pb + num, t;
+	intptr_t *stop = pb + num, t;
 
 	while (pb != stop)
 		t = *pa, *pa++ = *po, *po++ = *pb, *pb++ = t;
@@ -339,9 +339,9 @@ ring_positive(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict p
 // Helper function that operates on A, O, and B blocks, where O is treated as a
 // ring buffer.  ring_negaive does a right-rotate by 1 of the 3 blocks
 static inline void
-ring_negative(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict pb, size_t num)
+ring_negative(intptr_t * restrict pa, intptr_t * restrict po, intptr_t * restrict pb, size_t num)
 {
-	int32_t	*stop = pb - num, t;
+	intptr_t *stop = pb - num, t;
 
 	while (pb != stop)
 		t = *--pb, *pb = *--po, *po = *--pa, *pa = t;
@@ -362,9 +362,9 @@ ring_negative(int32_t * restrict pa, int32_t * restrict po, int32_t * restrict p
 // This algorithm will generally always rotate the two starting blocks in the
 // least possible number of item-wise swap operations.
 static void
-triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
+triple_shift_rotate_v2(intptr_t *pa, size_t na, size_t nb)
 {
-	for (int32_t *pb = pa + na, *pe = pb + nb; na; nb = pe - pb, na = pb - pa) {
+	for (intptr_t *pb = pa + na, *pe = pb + nb; na; nb = pe - pb, na = pb - pa) {
 		if (na < nb) {
 			// no = number of overlapping items
 			size_t	no = nb - na;
@@ -419,10 +419,10 @@ triple_shift_rotate_v2(int32_t *pa, size_t na, size_t nb)
 // When given 3 blocks of equal size, everything in B goes to A, everything
 // in C goes to B, and everything in A goes to C.
 static inline void
-three_way_swap_block(int32_t * restrict pa, int32_t * restrict pb,
-                     int32_t * restrict pc, size_t num)
+three_way_swap_block(intptr_t * restrict pa, intptr_t * restrict pb,
+                     intptr_t * restrict pc, size_t num)
 {
-	int32_t	*stop = pb + num, t;
+	intptr_t *stop = pb + num, t;
 
 	while (pb != stop)
 		t = *pa, *pa++ = *pb, *pb++ = *pc, *pc++ = t;
@@ -434,9 +434,9 @@ three_way_swap_block(int32_t * restrict pa, int32_t * restrict pb,
 // sizes in a more direct fashion, with different code-paths depending on the
 // relative sizes at the start of each loop.
 static void
-triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
+triple_shift_rotate(intptr_t *pa, size_t na, size_t nb)
 {
-	for (int32_t *pb = pa + na, *pe = pb + nb; na; ) {
+	for (intptr_t *pb = pa + na, *pe = pb + nb; na; ) {
 		if (na < nb) {
 			if (na <= (MIN_STREAM_SIZE / sizeof(*pa)))
 				return rotate_small(pa, pb, pe);
@@ -500,9 +500,9 @@ triple_shift_rotate(int32_t *pa, size_t na, size_t nb)
 // set sizes.
 
 static void
-old_forsort_rotate(int32_t *pa, size_t na, size_t nb)
+old_forsort_rotate(intptr_t *pa, size_t na, size_t nb)
 {
-	int32_t	*pb = pa + na;
+	intptr_t *pb = pa + na;
 
 	while (na && nb) {
 		if (na < nb) {

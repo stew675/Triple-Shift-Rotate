@@ -30,9 +30,9 @@
 #ifndef ROTATE_H
 #define ROTATE_H
 
-void outsidein_reversal(int *array, size_t block_size)
+void outsidein_reversal(intptr_t *array, size_t block_size)
 {
-	int *pta, *ptb, swap;
+	intptr_t *pta, *ptb, swap;
 
 	pta = array;
 	ptb = array + block_size;
@@ -45,9 +45,9 @@ void outsidein_reversal(int *array, size_t block_size)
 	}
 }
 
-void insideout_reversal(int *array, size_t block_size)
+void insideout_reversal(intptr_t *array, size_t block_size)
 {
-	int *pta, *ptb, swap;
+	intptr_t *pta, *ptb, swap;
 
 	ptb = array + block_size;
 
@@ -62,9 +62,9 @@ void insideout_reversal(int *array, size_t block_size)
 	}
 }
 
-void forward_block_swap(int *array, const size_t start1, const size_t start2, size_t block_size)
+void forward_block_swap(intptr_t *array, const size_t start1, const size_t start2, size_t block_size)
 {
-	int *pta, *ptb, swap;
+	intptr_t *pta, *ptb, swap;
 
 	pta = array + start1;
 	ptb = array + start2;
@@ -75,9 +75,9 @@ void forward_block_swap(int *array, const size_t start1, const size_t start2, si
 	}
 }
 
-void backward_block_swap(int *array, const size_t start1, const size_t start2, size_t block_size)
+void backward_block_swap(intptr_t *array, const size_t start1, const size_t start2, size_t block_size)
 {
-	int *pta, *ptb, swap;
+	intptr_t *pta, *ptb, swap;
 
 	pta = array + start1 + block_size;
 	ptb = array + start2 + block_size;
@@ -88,9 +88,9 @@ void backward_block_swap(int *array, const size_t start1, const size_t start2, s
 	}
 }
 
-void auxiliary_rotation(int *array, size_t left, size_t right)
+void auxiliary_rotation(intptr_t *array, size_t left, size_t right)
 {
-	int *pta, *ptb, *ptc, *swap;
+	intptr_t *pta, *ptb, *ptc, *swap;
 
 	pta = array;
 	ptb = array + left;
@@ -98,30 +98,30 @@ void auxiliary_rotation(int *array, size_t left, size_t right)
 
 	if (left < right)
 	{
-		swap = malloc(left * sizeof(int));
+		swap = malloc(left * sizeof(intptr_t));
 
-		memcpy(swap, pta, left * sizeof(int));
+		memcpy(swap, pta, left * sizeof(intptr_t));
 
-		memmove(pta, ptb, right * sizeof(int));
+		memmove(pta, ptb, right * sizeof(intptr_t));
 
-		memcpy(ptc, swap, left * sizeof(int));
+		memcpy(ptc, swap, left * sizeof(intptr_t));
 	}
 	else
 	{
-		swap = malloc(right * sizeof(int));
+		swap = malloc(right * sizeof(intptr_t));
 
-		memcpy(swap, ptb, right * sizeof(int));
+		memcpy(swap, ptb, right * sizeof(intptr_t));
 
-		memmove(ptc, pta, left * sizeof(int));
+		memmove(ptc, pta, left * sizeof(intptr_t));
 
-		memcpy(pta, swap, right * sizeof(int));
+		memcpy(pta, swap, right * sizeof(intptr_t));
 	}
 	free(swap);
 }
 
-void stack_rotation(int *array, size_t left, size_t right)
+void stack_rotation(intptr_t *array, size_t left, size_t right)
 {
-	int *pta, *ptb, *ptc, swap[8];
+	intptr_t *pta, *ptb, *ptc, swap[8];
 
 	pta = array;
 	ptb = array + left;
@@ -129,25 +129,25 @@ void stack_rotation(int *array, size_t left, size_t right)
 
 	if (left < right)
 	{
-		memcpy(swap, pta, left * sizeof(int));
+		memcpy(swap, pta, left * sizeof(intptr_t));
 
-		memmove(pta, ptb, right * sizeof(int));
+		memmove(pta, ptb, right * sizeof(intptr_t));
 
-		memcpy(ptc, swap, left * sizeof(int));
+		memcpy(ptc, swap, left * sizeof(intptr_t));
 	}
 	else
 	{
-		memcpy(swap, ptb, right * sizeof(int));
+		memcpy(swap, ptb, right * sizeof(intptr_t));
 
-		memmove(ptc, pta, left * sizeof(int));
+		memmove(ptc, pta, left * sizeof(intptr_t));
 
-		memcpy(pta, swap, right * sizeof(int));
+		memcpy(pta, swap, right * sizeof(intptr_t));
 	}
 }
 
 // 3 reversal - Origin unknown, but prior to 1981
 
-void reversal_rotation(int *array, size_t left, size_t right)
+void reversal_rotation(intptr_t *array, size_t left, size_t right)
 {
 	outsidein_reversal(array, left);
 	outsidein_reversal(array + left, right);
@@ -156,9 +156,9 @@ void reversal_rotation(int *array, size_t left, size_t right)
 
 // 2021 - Bridge rotation by Igor van den Hoven
 
-void bridge_rotation(int *array, size_t left, size_t right)
+void bridge_rotation(intptr_t *array, size_t left, size_t right)
 {
-	int *pta, *ptb, *ptc, *ptd, *swap;
+	intptr_t *pta, *ptb, *ptc, *ptd, *swap;
 
 	pta = array;
 	ptb = pta + left;
@@ -171,22 +171,22 @@ void bridge_rotation(int *array, size_t left, size_t right)
 
 		if (bridge < left)
 		{
-			swap = malloc(bridge * sizeof(int));
+			swap = malloc(bridge * sizeof(intptr_t));
 
-			memcpy(swap, ptb, bridge * sizeof(int));
+			memcpy(swap, ptb, bridge * sizeof(intptr_t));
 
 			while (left--)
 			{
 				*--ptc = *--ptd; *ptd = *--ptb;
 			}
-			memcpy(pta, swap, bridge * sizeof(int));
+			memcpy(pta, swap, bridge * sizeof(intptr_t));
 		}
 		else
 		{
-			swap = malloc(left * sizeof(int));
-			memcpy(swap, pta, left * sizeof(int));
-			memmove(pta, ptb, right * sizeof(int));
-			memcpy(ptc, swap, left * sizeof(int));
+			swap = malloc(left * sizeof(intptr_t));
+			memcpy(swap, pta, left * sizeof(intptr_t));
+			memmove(pta, ptb, right * sizeof(intptr_t));
+			memcpy(ptc, swap, left * sizeof(intptr_t));
 		}
 	}
 	else if (right < left)
@@ -195,27 +195,27 @@ void bridge_rotation(int *array, size_t left, size_t right)
 
 		if (bridge < right)
 		{
-			swap = malloc(bridge * sizeof(int));
+			swap = malloc(bridge * sizeof(intptr_t));
 			
-			memcpy(swap, ptc, bridge * sizeof(int));
+			memcpy(swap, ptc, bridge * sizeof(intptr_t));
 			
 			while (right--)
 			{
 				*ptc++ = *pta; *pta++ = *ptb++;
 			}
-			memcpy(ptd - bridge, swap, bridge * sizeof(int));
+			memcpy(ptd - bridge, swap, bridge * sizeof(intptr_t));
 		}
 		else
 		{
-			swap = malloc(right * sizeof(int));
-			memcpy(swap, ptb, right * sizeof(int));
-			memmove(ptc, pta, left * sizeof(int));
-			memcpy(pta, swap, right * sizeof(int));
+			swap = malloc(right * sizeof(intptr_t));
+			memcpy(swap, ptb, right * sizeof(intptr_t));
+			memmove(ptc, pta, left * sizeof(intptr_t));
+			memcpy(pta, swap, right * sizeof(intptr_t));
 		}
 	}
 	else
 	{
-		swap = malloc(1 * sizeof(int));
+		swap = malloc(1 * sizeof(intptr_t));
 
 		while (left--)
 		{
@@ -230,72 +230,72 @@ void bridge_rotation(int *array, size_t left, size_t right)
 #ifdef I_WANT_IT_TO_BE_FAST
 
 static inline void
-contrev(int * restrict pa, int * restrict pb, int * restrict pc, int * restrict pd, size_t num)
+contrev(intptr_t * restrict pa, intptr_t * restrict pb, intptr_t * restrict pc, intptr_t * restrict pd, size_t num)
 {
-	int	* restrict stop = pa + num, t;
+	intptr_t	* restrict stop = pa + num, t;
 
 	while (pa != stop)
 		t = *--pb, *pb = *pa, *pa++ = *pc, *pc++ = *--pd, *pd = t;
 }
 
 static inline void
-shiftrev_up(int * restrict pa, int * restrict pc, int * restrict pd, size_t num)
+shiftrev_up(intptr_t * restrict pa, intptr_t * restrict pc, intptr_t * restrict pd, size_t num)
 {
-	int	* restrict stop = pa + num, t;
+	intptr_t	* restrict stop = pa + num, t;
 
 	while (pa != stop)
 		t = *pc, *pc++ = *--pd, *pd = *pa, *pa++ = t;
 }
 
 static inline void
-shiftrev_down(int * restrict pa, int * restrict pb, int * restrict pd, size_t num)
+shiftrev_down(intptr_t * restrict pa, intptr_t * restrict pb, intptr_t * restrict pd, size_t num)
 {
-	int	* restrict stop = pa + num, t;
+	intptr_t	* restrict stop = pa + num, t;
 
 	while (pa != stop)
 		t = *--pb, *pb = *pa, *pa++ = *--pd, *pd = t;
 }
 
 static inline void
-justrev(int * restrict pa, int * restrict pb, size_t num)
+justrev(intptr_t * restrict pa, intptr_t * restrict pb, size_t num)
 {
-	int	* restrict stop = pa + num, t;
+	intptr_t	* restrict stop = pa + num, t;
 
 	while (pa != stop)
 		t = *pa, *pa++ = *--pb, *pb = t;
 }
 
 static inline void
-justswap(int * restrict pa, int * restrict pb, size_t num)
+justswap(intptr_t * restrict pa, intptr_t * restrict pb, size_t num)
 {
-	int	* restrict stop = pa + num, t;
+	intptr_t	* restrict stop = pa + num, t;
 
 	while (pa != stop)
 		t = *pa, *pa++ = *pb, *pb++ = t;
 }
 
 static inline void
-do_bridge_down(int *pb, int *pc, int * restrict pd, size_t num)
+do_bridge_down(intptr_t *pb, intptr_t *pc, intptr_t * restrict pd, size_t num)
 {
-	int	* restrict stop = pb - num;
+	intptr_t	* restrict stop = pb - num;
 
 	while (pb != stop)
 		*--pc = *--pd, *pd = *--pb;
 } // do_bridge_down
 
 static inline void
-do_bridge_up(int * restrict pa, int *pb, int *pc, size_t num)
+do_bridge_up(intptr_t * restrict pa, intptr_t *pb, intptr_t *pc, size_t num)
 {
-	int	* restrict stop = pb + num;
+	intptr_t	* restrict stop = pb + num;
 
 	while (pb != stop)
 		*pc++ = *pa, *pa++ = *pb++;
 } // do_bridge_up
 
 // 2021 - Conjoined Triple Reversal rotation by Igor van den Hoven
-void contrev_rotation(int *array, size_t left, size_t right)
+void contrev_rotation(intptr_t *array, size_t left, size_t right)
 {
-	int *pta, *ptb, *ptc, *ptd;
+	intptr_t *pta, *ptb, *ptc, *ptd;
 	size_t loop;
 
 	pta = array;
@@ -334,16 +334,16 @@ void contrev_rotation(int *array, size_t left, size_t right)
 #define MAX_AUX 8
 
 // 2021 - Trinity rotation by Igor van den Hoven (Conjoined Triple Reversal + Bridge rotation)
-void trinity_rotation(int *array, size_t left, size_t right)
+void trinity_rotation(intptr_t *array, size_t left, size_t right)
 {
-	int	swap[MAX_AUX];
-	int	*pta, *ptb, *ptc, *ptd;
+	intptr_t	swap[MAX_AUX];
+	intptr_t	*pta, *ptb, *ptc, *ptd;
 
 	if (left < right) {
 		if (left <= MAX_AUX) {
-			memcpy(swap, array, left * sizeof(int));
-			memmove(array, array + left, right * sizeof(int));
-			memcpy(array + right, swap, left * sizeof(int));
+			memcpy(swap, array, left * sizeof(intptr_t));
+			memmove(array, array + left, right * sizeof(intptr_t));
+			memcpy(array + right, swap, left * sizeof(intptr_t));
 		} else {
 			pta = array;
 			ptb = pta + left;
@@ -354,9 +354,9 @@ void trinity_rotation(int *array, size_t left, size_t right)
 				ptc = pta + right;
 				ptd = ptc + left;
 
-				memcpy(swap, ptb, loop * sizeof(int));
+				memcpy(swap, ptb, loop * sizeof(intptr_t));
 				do_bridge_down(ptb, ptc, ptd, left);
-				memcpy(pta, swap, loop * sizeof(int));
+				memcpy(pta, swap, loop * sizeof(intptr_t));
 			} else {
 				ptc = ptb;
 				ptd = ptc + right;
@@ -377,9 +377,9 @@ void trinity_rotation(int *array, size_t left, size_t right)
 	else if (right < left) {
 		if (right <= MAX_AUX)
 		{
-			memcpy(swap, array + left, right * sizeof(int));
-			memmove(array + right, array, left * sizeof(int));
-			memcpy(array, swap, right * sizeof(int));
+			memcpy(swap, array + left, right * sizeof(intptr_t));
+			memmove(array + right, array, left * sizeof(intptr_t));
+			memcpy(array, swap, right * sizeof(intptr_t));
 		} else {
 			pta = array;
 			ptb = pta + left;
@@ -389,9 +389,9 @@ void trinity_rotation(int *array, size_t left, size_t right)
 				ptc = pta + right;
 				ptd = ptc + left;
 
-				memcpy(swap, ptc, loop * sizeof(int));
+				memcpy(swap, ptc, loop * sizeof(intptr_t));
 				do_bridge_up(pta, ptb, ptc, right);
-				memcpy(ptd - loop, swap, loop * sizeof(int));
+				memcpy(ptd - loop, swap, loop * sizeof(intptr_t));
 			} else {
 				ptc = ptb;
 				ptd = ptc + right;
@@ -422,9 +422,9 @@ void trinity_rotation(int *array, size_t left, size_t right)
 #else
 
 // 2021 - Conjoined Triple Reversal rotation by Igor van den Hoven
-void contrev_rotation(int *array, size_t left, size_t right)
+void contrev_rotation(intptr_t *array, size_t left, size_t right)
 {
-	int *pta, *ptb, *ptc, *ptd;
+	intptr_t *pta, *ptb, *ptc, *ptd;
 	size_t loop;
 
 	pta = array;
@@ -434,7 +434,7 @@ void contrev_rotation(int *array, size_t left, size_t right)
 
 	if (left > right)
 	{
-		int swap;
+		intptr_t swap;
 
 		loop = right / 2;
 
@@ -459,7 +459,7 @@ void contrev_rotation(int *array, size_t left, size_t right)
 	}
 	else if (left < right)
 	{
-		int swap;
+		intptr_t swap;
 
 		loop = left / 2;
 
@@ -487,7 +487,7 @@ void contrev_rotation(int *array, size_t left, size_t right)
 
 		while (loop--)
 		{
-			int swap = *pta; *pta++ = *ptb; *ptb++ = swap;
+			intptr_t swap = *pta; *pta++ = *ptb; *ptb++ = swap;
 		}
 	}
 }
@@ -495,18 +495,18 @@ void contrev_rotation(int *array, size_t left, size_t right)
 #define MAX_AUX 8
 
 // 2021 - Trinity rotation by Igor van den Hoven (Conjoined Triple Reversal + Bridge rotation)
-void trinity_rotation(int *array, size_t left, size_t right)
+void trinity_rotation(intptr_t *array, size_t left, size_t right)
 {
-	int *pta, *ptb, *ptc, *ptd, swap[MAX_AUX];
+	intptr_t *pta, *ptb, *ptc, *ptd, swap[MAX_AUX];
 	size_t loop;
 
 	if (left < right)
 	{
 		if (left <= MAX_AUX)
 		{
-			memcpy(swap, array, left * sizeof(int));
-			memmove(array, array + left, right * sizeof(int));
-			memcpy(array + right, swap, left * sizeof(int));
+			memcpy(swap, array, left * sizeof(intptr_t));
+			memmove(array, array + left, right * sizeof(intptr_t));
+			memcpy(array + right, swap, left * sizeof(intptr_t));
 		}
 		else
 		{
@@ -520,13 +520,13 @@ void trinity_rotation(int *array, size_t left, size_t right)
 				ptc = pta + right;
 				ptd = ptc + left;
 
-				memcpy(swap, ptb, loop * sizeof(int));
+				memcpy(swap, ptb, loop * sizeof(intptr_t));
 
 				while (left--)
 				{
 					*--ptc = *--ptd; *ptd = *--ptb;
 				}
-				memcpy(pta, swap, loop * sizeof(int));
+				memcpy(pta, swap, loop * sizeof(intptr_t));
 			}
 			else
 			{
@@ -560,9 +560,9 @@ void trinity_rotation(int *array, size_t left, size_t right)
 	{
 		if (right <= MAX_AUX)
 		{
-			memcpy(swap, array + left, right * sizeof(int));
-			memmove(array + right, array, left * sizeof(int));
-			memcpy(array, swap, right * sizeof(int));
+			memcpy(swap, array + left, right * sizeof(intptr_t));
+			memmove(array + right, array, left * sizeof(intptr_t));
+			memcpy(array, swap, right * sizeof(intptr_t));
 		}
 		else
 		{
@@ -575,13 +575,13 @@ void trinity_rotation(int *array, size_t left, size_t right)
 				ptc = pta + right;
 				ptd = ptc + left;
 
-				memcpy(swap, ptc, loop * sizeof(int));
+				memcpy(swap, ptc, loop * sizeof(intptr_t));
 			
 				while (right--)
 				{
 					*ptc++ = *pta; *pta++ = *ptb++;
 				}
-				memcpy(ptd - loop, swap, loop * sizeof(int));
+				memcpy(ptd - loop, swap, loop * sizeof(intptr_t));
 			}
 			else
 			{
@@ -628,7 +628,7 @@ void trinity_rotation(int *array, size_t left, size_t right)
 
 // 1981 - Gries-Mills rotation by David Gries and Harlan Mills
 
-void griesmills_rotation(int *array, size_t left, size_t right)
+void griesmills_rotation(intptr_t *array, size_t left, size_t right)
 {
 	size_t start = 0;
 
@@ -660,7 +660,7 @@ void griesmills_rotation(int *array, size_t left, size_t right)
 
 // 2020 - Grail rotation by the Holy Grail Sort project (Gries-Mills derived)
 
-void grail_rotation(int *array, size_t left, size_t right)
+void grail_rotation(intptr_t *array, size_t left, size_t right)
 {
 	size_t min   = left <= right ? left : right;
 	size_t start = 0;
@@ -702,7 +702,7 @@ void grail_rotation(int *array, size_t left, size_t right)
 
 // 2021 - Piston rotation by Igor van den Hoven. Based on the successive swap described by Gries and Mills in 1981.
 
-void piston_rotation(int *array, size_t left, size_t right)
+void piston_rotation(intptr_t *array, size_t left, size_t right)
 {
 	size_t start = 0;
 
@@ -734,9 +734,9 @@ void piston_rotation(int *array, size_t left, size_t right)
 
 // 2021 - Helix rotation by Control (grail derived)
 
-void helix_rotation(int *array, size_t left, size_t right)
+void helix_rotation(intptr_t *array, size_t left, size_t right)
 {
-	int swap;
+	intptr_t swap;
 	size_t start = 0;
 	size_t end = left + right;
 	size_t mid = left;
@@ -781,9 +781,9 @@ void helix_rotation(int *array, size_t left, size_t right)
 
 // 2021 - Drill rotation by Igor van den Hoven (grail derived with piston and helix loops)
 
-void drill_rotation(int *array, size_t left, size_t right)
+void drill_rotation(intptr_t *array, size_t left, size_t right)
 {
-	int swap;
+	intptr_t swap;
 	size_t start = 0;
 	size_t end = left + right;
 	size_t mid = left;
@@ -824,9 +824,9 @@ void drill_rotation(int *array, size_t left, size_t right)
 
 // 1965 - Juggling aka Dolphin rotation
 
-int gcd(int a, int b)
+intptr_t gcd(intptr_t a, intptr_t b)
 {
-	int r;
+	intptr_t r;
 
 	while (b)
 	{
@@ -837,9 +837,9 @@ int gcd(int a, int b)
 	return a;
 }
 
-void juggling_rotation(int *array, size_t left, size_t right)
+void juggling_rotation(intptr_t *array, size_t left, size_t right)
 {
-	int *pta, *ptb, *ptc, *ptd, swap;
+	intptr_t *pta, *ptb, *ptc, *ptd, swap;
 	const size_t nmemb = left + right;
 
 	if (left == 0)
